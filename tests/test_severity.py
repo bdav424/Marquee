@@ -85,8 +85,18 @@ class TestUnknownHandling(unittest.TestCase):
         self.assertNotEqual(v.score("violence"), 0)
 
     def test_unmatched_fragments_are_captured_for_extension(self):
-        v = vec("Rated PG-13 for sci-fi action and thematic elements.")
-        self.assertIn("thematic elements", [f.lower() for f in v.unmatched])
+        # "action" is known, the second clause is not — a partially readable
+        # string must still surface the part the vocabulary missed.
+        v = vec("Rated PG-13 for sci-fi action and unsettling tableaux.")
+        self.assertTrue(v.parsed)
+        self.assertIn("unsettling tableaux", [f.lower() for f in v.unmatched])
+
+    def test_common_thematic_phrasing_is_understood(self):
+        # Regression: "thematic elements" is one of the MPA's most common
+        # phrases. Missing it made otherwise clean PG titles read as unknown.
+        v = vec("Rated PG for mild thematic elements.")
+        self.assertTrue(v.parsed)
+        self.assertEqual(v.score("frightening"), 1)
 
     def test_unknown_never_flags_on_its_own(self):
         result = evaluate(vec(None), CONFIG)

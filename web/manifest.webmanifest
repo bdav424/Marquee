@@ -1,0 +1,19 @@
+{
+  "name": "Winchester Marquee",
+  "short_name": "Winchester",
+  "description": "What's playing at Alamo Drafthouse Winchester.",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0B0E",
+  "theme_color": "#0B0B0E",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

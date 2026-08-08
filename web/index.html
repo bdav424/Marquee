@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Winchester">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Winchester Marquee</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-main">
+    <h1>Winchester</h1>
+    <button id="legend-toggle" class="legend-btn" aria-expanded="false"
+            aria-controls="legend" title="What the dimming means">?</button>
+  </div>
+  <p class="freshness" id="freshness" aria-live="polite">Loading…</p>
+</header>
+
+<section id="legend" class="legend" hidden>
+  <p><strong>Nothing is ever hidden.</strong> Every title playing is shown.</p>
+  <p><span class="swatch swatch-dim"></span> Dimmed means it tripped one of your
+     thresholds. Tap any title to see exactly which, and the rating text it came from.</p>
+  <p><span class="swatch swatch-unknown"></span> Marked <b>?</b> means the rating
+     reason could not be read. Unknown — not known to be clean.</p>
+</section>
+
+<main id="grid" class="grid" aria-busy="true"></main>
+
+<p id="empty" class="empty" hidden>No showtimes in the cache.</p>
+
+<!-- Drill-in panel. The whole point: disagree with the verdict, see its work. -->
+<div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+<aside id="sheet" class="sheet" role="dialog" aria-modal="true"
+       aria-labelledby="sheet-title" hidden>
+  <button id="sheet-close" class="sheet-close" aria-label="Close">&times;</button>
+  <div id="sheet-body" class="sheet-body"></div>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+{
+  "theater": "Alamo Drafthouse Winchester",
+  "fetched_at": "2026-08-08T15:41:12.166416+00:00",
+  "generated_at": "2026-08-08T15:41:12.174976+00:00",
+  "stale": false,
+  "thresholds": {
+    "sexual": 1,
+    "violence": 3,
+    "frightening": 2,
+    "language": null,
+    "substance": null
+  },
+  "categories": [
+    "sexual",
+    "violence",
+    "language",
+    "substance",
+    "frightening"
+  ],
+  "titles": [
+    {
+      "slug": "salt-flats",
+      "name": "Salt Flats",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": 94,
+      "genres": [
+        "Horror"
+      ],
+      "synopsis": "Something is walking the dry lake bed, and it is keeping pace.",
+      "poster": "posters/salt-flats.jpg",
+      "flagged": true,
+      "flags": [
+        {
+          "category": "genre",
+          "score": null,
+          "threshold": null,
+          "reason": "TMDB genre includes Horror",
+          "evidence": [
+            "Horror"
+          ]
+        }
+      ],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "terror_tuesday",
+        "label": "TERROR TUESDAY",
+        "background": "#8B0000",
+        "foreground": "#FFF0F0",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T21:45:00+00:00",
+          "format": "35mm",
+          "auditorium": "Theater 1",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-gleaners-hour",
+      "name": "The Gleaner's Hour",
+      "rating": "R",
+      "rating_reason": "Rated R for aberrant conduct and unsettling tableaux.",
+      "runtime_minutes": 118,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": "A restorer of church frescoes begins repainting the saints.",
+      "poster": "posters/the-gleaners-hour.jpg",
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "weird_wednesday",
+        "label": "WEIRD WEDNESDAY",
+        "background": "#5B2C8D",
+        "foreground": "#EFE0FF",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T22:00:00+00:00",
+          "format": "35mm",
+          "auditorium": "Theater 1",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-long-dark",
+      "name": "The Long Dark",
+      "rating": "R",
+      "rating_reason": "Rated R for strong bloody violence, language throughout, and some sexual content.",
+      "runtime_minutes": 138,
+      "genres": [
+        "Thriller",
+        "Drama"
+      ],
+      "synopsis": "A hitchhiker takes the last ride out of a town that is already gone.",
+      "poster": "posters/the-long-dark.jpg",
+      "flagged": true,
+      "flags": [
+        {
+          "category": "sexual",
+          "score": 1,
+          "threshold": 1,
+          "reason": "sexual scored 1, threshold is 1",
+          "evidence": [
+            "some sexual content"
+          ]
+        },
+        {
+          "category": "violence",
+          "score": 3,
+          "threshold": 3,
+          "reason": "violence scored 3, threshold is 3",
+          "evidence": [
+            "strong bloody violence",
+            "strong bloody violence"
+          ]
+        }
+      ],
+      "severity": {
+        "sexual": 1,
+        "violence": 3,
+        "language": 3,
+        "substance": 0,
+        "frightening": 0
+      },
+      "unknown_categories": [],
+      "reason_parsed": true,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-08T19:30:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": false
+        },
+        {
+          "showtime": "2026-08-09T16:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": true
+        }
+      ]
+    },
+    {
+      "slug": "commission-sales",
+      "name": "Commission Sales",
+      "rating": "R",
+      "rating_reason": "Rated R for pervasive language and some drug use.",
+      "runtime_minutes": 112,
+      "genres": [
+        "Comedy"
+      ],
+      "synopsis": "Four brokers, one quota, and a fax machine that will not stop.",
+      "poster": "posters/commission-sales.jpg",
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": 0,
+        "violence": 0,
+        "language": 3,
+        "substance": 1,
+        "frightening": 0
+      },
+      "unknown_categories": [],
+      "reason_parsed": true,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-08T20:15:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 2",
+          "sold_out": false
+        },
+        {
+          "showtime": "2026-08-10T18:30:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 2",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "ironwood",
+      "name": "Ironwood",
+      "rating": "PG-13",
+      "rating_reason": "Rated PG-13 for sequences of violence and action.",
+      "runtime_minutes": 127,
+      "genres": [
+        "Action"
+      ],
+      "synopsis": "A logging dispute becomes a siege.",
+      "poster": "posters/ironwood.jpg",
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": 0,
+        "violence": 2,
+        "language": 0,
+        "substance": 0,
+        "frightening": 0
+      },
+      "unknown_categories": [],
+      "reason_parsed": true,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T17:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 1",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "paper-boats",
+      "name": "Paper Boats",
+      "rating": "PG",
+      "rating_reason": "Rated PG for mild thematic elements.",
+      "runtime_minutes": 101,
+      "genres": [
+        "Family",
+        "Adventure"
+      ],
+      "synopsis": "Two siblings map a river that is not on any map.",
+      "poster": "posters/paper-boats.jpg",
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": 0,
+        "violence": 0,
+        "language": 0,
+        "substance": 0,
+        "frightening": 1
+      },
+      "unknown_categories": [],
+      "reason_parsed": true,
+      "series": {
+        "key": "kids_camp",
+        "label": "KIDS CAMP",
+        "background": "#2E7D32",
+        "foreground": "#EAFBEA",
+        "one_night": false,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-10T11:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 4",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "hydroplane",
+      "name": "Hydroplane",
+      "rating": "R",
+      "rating_reason": "Rated R for graphic nudity and language.",
+      "runtime_minutes": 99,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": "A speed record attempt on a lake that freezes early.",
+      "poster": "posters/hydroplane.jpg",
+      "flagged": true,
+      "flags": [
+        {
+          "category": "sexual",
+          "score": 3,
+          "threshold": 1,
+          "reason": "sexual scored 3, threshold is 1",
+          "evidence": [
+            "graphic nudity"
+          ]
+        }
+      ],
+      "severity": {
+        "sexual": 3,
+        "violence": 0,
+        "language": 3,
+        "substance": 0,
+        "frightening": 0
+      },
+      "unknown_categories": [],
+      "reason_parsed": true,
+      "series": {
+        "key": "adults_only",
+        "label": "21+",
+        "background": "#B26A00",
+        "foreground": "#FFF6E5",
+        "one_night": false,
+        "recognised": true
+      },
+      "series_secondary": [
+        {
+          "key": "unrecognised",
+          "label": "CURSED FILM CLUB",
+          "background": "#4A4A52",
+          "foreground": "#F5F5F0",
+          "one_night": false,
+          "recognised": false
+        }
+      ],
+      "showings": [
+        {
+          "showtime": "2026-08-10T21:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 2",
+          "sold_out": false
+        }
+      ]
+    }
+  ],
+  "diagnostics": {
+    "title_count": 7,
+    "flagged_count": 3,
+    "unknown_reason_count": 2,
+    "unmatched_reason_fragments": [
+      [
+        "aberrant conduct",
+        1
+      ],
+      [
+        "unsettling tableaux",
+        1
+      ]
+    ],
+    "unparsed_reason_strings": [
+      {
+        "title": "The Gleaner's Hour",
+        "reason": "Rated R for aberrant conduct and unsettling tableaux."
+      }
+    ],
+    "unrecognised_series": [
+      [
+        "Cursed Film Club",
+        1
+      ]
+    ]
+  }
+}

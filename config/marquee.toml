@@ -81,7 +81,19 @@ sexual = ["strong sexual content", "graphic nudity", "sexual material"]
 violence = ["violent content", "grisly images", "bloody images", "violent images"]
 language = ["sexual language", "crude sexual humor"]
 substance = ["drug material", "alcohol use", "substance abuse", "drug references"]
-frightening = ["peril", "scary images", "menace"]
+# "thematic elements" / "thematic material" is one of the MPA's most common
+# phrases and matched nothing in the starting vocabulary, which made otherwise
+# clean PG titles read as `unknown`. Filed under frightening as the closest
+# fit; the "thematic" modifier scores it 1, safely under the threshold of 2,
+# so it annotates without flagging.
+frightening = [
+  "peril",
+  "scary images",
+  "menace",
+  "mature thematic elements",
+  "thematic elements",
+  "thematic material",
+]
 
 
 # --- Intensity ladder -------------------------------------------------------

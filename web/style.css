@@ -1,0 +1,345 @@
+/* Winchester marquee — phone-first companion page.
+   No framework, no build step, no network at render. */
+
+:root {
+  --bg: #0B0B0E;
+  --surface: #16161C;
+  --surface-2: #1F1F27;
+  --edge: #2C2C36;
+  --text: #F2F2F0;
+  --text-dim: #9A9AA6;
+  --accent: #E8B33C;
+  --alert: #E5484D;
+  --ok: #46A758;
+
+  --radius: 14px;
+  --gap: 12px;
+
+  /* How hard a flagged title is pushed back. Tuned so it reads as weighted,
+     not disabled — it must still be legible and obviously tappable. */
+  --dim-saturate: 0.18;
+  --dim-opacity: 0.46;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 ui-rounded, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: contain;
+}
+
+/* ---------- header ---------- */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--edge);
+}
+
+.bar-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.freshness { margin: 2px 0 0; font-size: 11px; color: var(--text-dim); }
+.freshness.stale { color: var(--accent); font-weight: 600; }
+
+.legend-btn {
+  flex: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--edge);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer;
+}
+
+.legend {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--edge);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.legend p { margin: 0 0 7px; }
+.legend p:last-child { margin-bottom: 0; }
+.legend b, .legend strong { color: var(--text); }
+
+.swatch {
+  display: inline-block;
+  width: 11px; height: 11px;
+  border-radius: 3px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  background: var(--text-dim);
+}
+.swatch-dim { opacity: var(--dim-opacity); background: var(--text); }
+.swatch-unknown { background: var(--accent); }
+
+/* ---------- grid ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap);
+  padding: var(--gap);
+  padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 820px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card:active { transform: scale(0.985); }
+
+/* The weighting. Desaturated and pushed back — never removed, never hidden. */
+.card.flagged .poster,
+.card.flagged .card-body { filter: saturate(var(--dim-saturate)); opacity: var(--dim-opacity); }
+.card.flagged { border-color: #262630; }
+
+/* Badges stay legible so you can still read what the dimmed thing IS. */
+.card.flagged .series-badge { filter: saturate(0.55); opacity: 0.8; }
+
+.poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  background: var(--surface-2);
+  display: block;
+  object-fit: cover;
+}
+
+/* Poster art is cached locally; this is the graceful fallback when it is
+   missing, rather than a broken image or a hotlink. */
+.poster-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.26);
+  letter-spacing: 0.04em;
+}
+
+.series-badge {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 5px 7px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: center;
+  z-index: 2;
+  line-height: 1.25;
+}
+
+.series-badge .strand { display: block; }
+
+.series-badge .one-night-tag {
+  display: block;
+  margin-top: 1px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  opacity: 0.8;
+}
+
+.badge-row {
+  position: absolute;
+  bottom: 6px; left: 6px; right: 6px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  z-index: 2;
+}
+
+.chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(8,8,10,0.82);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text);
+  backdrop-filter: blur(3px);
+}
+
+.chip-unknown { border-color: var(--accent); color: var(--accent); }
+.chip-flag { border-color: var(--alert); color: #FF9EA1; }
+
+.card-body { padding: 8px 9px 10px; }
+
+.card-title {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 0 0 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.times { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.time {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.time.today { color: var(--text); background: #2A2A34; }
+.time.sold-out { text-decoration: line-through; opacity: 0.5; }
+
+.daylabel {
+  width: 100%;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ---------- drill-in sheet ---------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.62);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+}
+
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-height: 88vh;
+  overflow-y: auto;
+  z-index: 50;
+  background: var(--surface);
+  border-top: 1px solid var(--edge);
+  border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
+  animation: rise 0.22s ease-out;
+}
+
+@keyframes rise { from { transform: translateY(14px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+
+.sheet-close {
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--edge);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet h2 { margin: 0 6px 3px 0; font-size: 18px; padding-right: 34px; }
+.sheet-meta { margin: 0 0 14px; font-size: 12px; color: var(--text-dim); }
+
+.verdict {
+  border-radius: 10px;
+  padding: 11px 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  border: 1px solid;
+}
+.verdict-flagged { background: rgba(229,72,77,0.09); border-color: rgba(229,72,77,0.38); }
+.verdict-clear   { background: rgba(70,167,88,0.09);  border-color: rgba(70,167,88,0.34); }
+.verdict-unknown { background: rgba(232,179,60,0.09); border-color: rgba(232,179,60,0.38); }
+.verdict h3 { margin: 0 0 5px; font-size: 13px; }
+.verdict ul { margin: 6px 0 0; padding-left: 17px; }
+.verdict li { margin-bottom: 3px; }
+
+.sheet h4 {
+  margin: 16px 0 7px;
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* Verbatim rating text — quoted, never paraphrased. */
+.reason-quote {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-left: 3px solid var(--edge);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.reason-quote.absent { color: var(--text-dim); font-style: italic; border-left-color: var(--accent); }
+
+.sev-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 62px;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.sev-name { color: var(--text-dim); text-transform: capitalize; }
+
+.sev-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+  display: flex;
+  gap: 2px;
+}
+.sev-seg { flex: 1; border-radius: 2px; background: var(--edge); }
+.sev-seg.on { background: var(--text-dim); }
+.sev-seg.on.tripped { background: var(--alert); }
+
+.sev-val { text-align: right; font-size: 10.5px; color: var(--text-dim); font-weight: 600; }
+.sev-val.tripped { color: #FF9EA1; }
+.sev-val.unknown { color: var(--accent); }
+.sev-val.muted   { opacity: 0.55; }
+
+.sheet-times { display: flex; flex-wrap: wrap; gap: 5px; }
+.synopsis { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+
+.empty { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 13px; }

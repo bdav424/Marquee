@@ -13,6 +13,11 @@
   --flap-ink: #17130C;        /* the letters */
   --flap-ink-dim: #8A7C62;    /* flagged: faded toward the flap, still lit */
   --flap-seam: rgba(20,16,10,0.72);  /* the hinge line between halves */
+  /* The vertical rule separating one letter from the next, at 10% opacity.
+     Two lines are easy to confuse here, so they are named apart: this is the
+     one BETWEEN letters; --hinge below is the one ACROSS each letter. */
+  --letter-rule: rgba(23,19,12,0.10);
+  --hinge: rgba(0,0,0,0.42);
   --glow: #B8600C;            /* accents readable against a lit panel */
   --ink-soft: rgba(23,19,12,0.62);
   --ink-faint: rgba(23,19,12,0.44);
@@ -214,7 +219,7 @@ body::before {
      edge, not from the background being dark. */
   box-shadow:
     0 2px 3px rgba(60,40,10,0.30),
-    0 0 0 1px rgba(23,19,12,0.34);
+    0 0 0 1px var(--letter-rule);
   flex: none;
 }
 
@@ -235,7 +240,7 @@ body::before {
 
 .half.top, .flap.front {
   background: linear-gradient(180deg, var(--flap-lit), #EBD9AC);
-  border-bottom: 1px solid rgba(0,0,0,0.42);
+  border-bottom: 1px solid var(--hinge);
 }
 
 .half.bottom, .flap.back {

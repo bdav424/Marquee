@@ -153,13 +153,30 @@ body::before {
 
 /* ---------- rows ---------- */
 
+/* Rows sit a quarter of a character apart, derived from the flap height so
+   the spacing stays proportional when the cells resize. Real boards stack
+   their rows almost touching. */
+#rows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--cell-h) * 0.25);
+}
+
 .row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* The row is now shorter than a comfortable touch target, so the hit area is
+   extended into the gap without changing the layout. */
+.row::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--cell-h) * -0.125) 0;
 }
 
 /* The series colour is a painted strip on the board's edge, not a flap. */

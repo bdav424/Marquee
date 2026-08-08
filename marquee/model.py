@@ -48,6 +48,10 @@ class Title:
     genres: list[str] = field(default_factory=list)
     synopsis: str | None = None
     poster: str | None = None          # local cached path, never a remote URL
+    # Where the art came from, before caching. Alamo publishes its own poster
+    # images, so this is usually filled from the feed and TMDB is only needed
+    # for runtime, genres and synopsis.
+    poster_source: str | None = None
 
     @property
     def series_tags(self) -> list[str]:

@@ -40,6 +40,8 @@ class Treatment:
 class SeriesConfig:
     treatments: list[Treatment]
     default: Treatment
+    # Normalised tags that are categories rather than series, and are dropped.
+    ignore: tuple[str, ...] = ()
 
 
 def _normalise(text: str) -> str:
@@ -98,7 +100,11 @@ def load_series_config(path: Path | str = DEFAULT_CONFIG_PATH) -> SeriesConfig:
     # ambiguous string before a lower-priority one can.
     treatments.sort(key=lambda t: t.priority, reverse=True)
 
-    return SeriesConfig(treatments=treatments, default=default)
+    ignore = tuple(
+        _normalise(t) for t in raw.get("ignore", {}).get("tags", [])
+    )
+
+    return SeriesConfig(treatments=treatments, default=default, ignore=ignore)
 
 
 def resolve(tags: list[str] | str | None, config: SeriesConfig) -> list[Treatment]:
@@ -121,6 +127,10 @@ def resolve(tags: list[str] | str | None, config: SeriesConfig) -> list[Treatmen
             continue
         normalised = _normalise(tag)
         if not normalised:
+            continue
+        # Categories masquerading as series ("New Releases") are dropped here
+        # rather than badged — see [ignore] in config/series.toml.
+        if any(_contains_phrase(normalised, i) for i in config.ignore):
             continue
 
         match = None

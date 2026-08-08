@@ -12,6 +12,13 @@
 # Matching is substring-based against a normalised form of whatever string the
 # feed carries, so this survives not knowing the feed's exact field shape.
 
+# Feed tags that are categories, not series. Alamo tags every new release
+# "New Releases" (slug first-run); badging that on almost every card would
+# be pure noise and would bury the one-night programming the badge exists to
+# surface. Matched like any other tag, then dropped.
+[ignore]
+tags = ["new releases", "first run", "first-run"]
+
 [defaults]
 # Any series tag the feed carries that matches nothing below still gets a
 # badge — an unrecognised strand is not the same as no strand, and silently

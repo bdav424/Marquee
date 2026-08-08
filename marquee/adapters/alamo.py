@@ -29,9 +29,11 @@ import re
 import urllib.error
 import urllib.request
 import zlib
+from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
-from marquee.model import Title
+from marquee.model import Showing, Title
 
 MARKET_SLUG = "winchester"
 
@@ -272,22 +274,184 @@ def discover(url: str | None = None) -> dict:
     )
 
 
-def to_titles(payload: Any) -> list[Title]:
-    """Map Alamo's payload onto the normalised model.
+def _index(items: Any, key: str = "slug") -> dict:
+    """Slug -> object, for the lookup tables the schedule references by slug."""
+    out = {}
+    for item in items or []:
+        if isinstance(item, dict) and item.get(key):
+            out[item[key]] = item
+    return out
 
-    NOT IMPLEMENTED, on purpose. Every field name here would be a guess until
-    discover() has run against a live response. Write this from the inventory
-    that discover() prints, and it is the only function that needs writing —
-    severity, series resolution, the build pipeline, the companion page and
-    the widget are all already written against marquee.model and will work
-    unchanged the moment this returns real Titles.
+
+# Age policies that are just the MPA certification restated. Alamo also uses
+# this field for real admission policies ("Rated PG with Adult Focus"), which
+# ARE worth badging — so only the plain restatements are filtered out.
+PLAIN_AGE_POLICY = re.compile(r"^rated-(g|pg|pg-13|r|nc-17)(-standard)?$", re.I)
+
+
+def _showtime(session: dict) -> datetime:
+    """Cinema-local aware datetime for a session.
+
+    showTimeUtc is naive-but-UTC; showTimeClt is naive-but-local. Preferring
+    UTC and converting to the cinema's own zone keeps the display correct even
+    if the box serving it sits in a different timezone than the theater.
     """
+    tzname = session.get("cinemaTimeZoneName") or "America/New_York"
+    zone = ZoneInfo(tzname)
+
+    utc = session.get("showTimeUtc")
+    if utc:
+        parsed = datetime.fromisoformat(utc)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(zone)
+
+    local = session.get("showTimeClt")
+    if local:
+        return datetime.fromisoformat(local).replace(tzinfo=zone)
+
     raise DiscoveryPending(
-        "Field mapping not written: no live Alamo response has ever been "
-        "observed from this environment. Run `python3 -m marquee.adapters."
-        "alamo discover` from a host with outbound access, then write this "
-        "function against the printed inventory."
+        f"session {session.get('sessionId')} carries neither showTimeUtc nor "
+        "showTimeClt — the schedule shape changed."
     )
+
+
+def _series_tags(presentation: dict, attributes: dict) -> list[str]:
+    """Human-readable series/event tags for a presentation.
+
+    Alamo spreads this across several fields. All of them are collected as raw
+    strings; deciding which are real series and which are noise is
+    config/series.toml's job, not this module's.
+    """
+    tags: list[str] = []
+
+    for key in ("superTitle", "event", "eventType", "primaryCollectionSlug"):
+        value = presentation.get(key)
+        if isinstance(value, str) and value.strip():
+            tags.append(value.strip())
+
+    for slug in presentation.get("presentationAttributeSlugs") or []:
+        attribute = attributes.get(slug)
+        if not attribute:
+            tags.append(slug)
+            continue
+        # Respect Alamo's own judgement about what is worth showing a user.
+        if attribute.get("isUserVisible") is False:
+            continue
+        tags.append(attribute.get("name") or slug)
+
+    return tags
+
+
+def _age_policy_tag(session: dict, policies: dict) -> list[str]:
+    """The session's admission policy, when it says more than the rating does."""
+    slug = session.get("agePolicySlug")
+    if not slug or PLAIN_AGE_POLICY.match(slug):
+        return []
+    policy = policies.get(slug)
+    return [policy.get("name") or slug] if policy else [slug]
+
+
+def _poster(show: dict) -> str | None:
+    """Best available poster URI. Alamo publishes its own art."""
+    for image in show.get("posterImages") or []:
+        if isinstance(image, dict) and image.get("uri"):
+            return image["uri"]
+    for key in ("portraitHeroImage", "landscapeHeroImage"):
+        image = show.get(key)
+        if isinstance(image, dict) and image.get("uri"):
+            return image["uri"]
+    return None
+
+
+def to_titles(payload: Any) -> list[Title]:
+    """Map Alamo's schedule payload onto the normalised model.
+
+    Written against the live field inventory of
+    /s/mother/v2/schedule/market/winchester, confirmed 2026-08-08.
+
+    The join is sessions[].presentationSlug -> presentations[].slug. Sessions
+    carry the time, screen, format and admission policy; presentations carry
+    the film. Lookup tables (formats, agePolicies, presentationAttributes) are
+    referenced by slug and resolved to human strings here.
+
+    Note what is NOT set: mpa_reason. Alamo publishes the certification but no
+    rating-reason text, so every title scores `unknown` until a second source
+    supplies one. That is surfaced honestly rather than defaulted to clean.
+    """
+    data = unwrap(payload)
+    if not isinstance(data, dict):
+        raise DiscoveryPending(
+            f"expected a JSON object at the top level, got {type(data).__name__}"
+        )
+
+    missing = [k for k in ("presentations", "sessions") if k not in data]
+    if missing:
+        raise DiscoveryPending(
+            f"schedule payload is missing {missing}; got keys {list(data)[:12]}. "
+            "The API shape changed — re-run discover."
+        )
+
+    formats = _index(data.get("formats"))
+    age_policies = _index(data.get("agePolicies"))
+    attributes = _index(data.get("presentationAttributes"))
+
+    sessions_by_presentation: dict[str, list[dict]] = {}
+    for session in data["sessions"]:
+        if not isinstance(session, dict) or session.get("isHidden"):
+            continue
+        slug = session.get("presentationSlug")
+        if slug:
+            sessions_by_presentation.setdefault(slug, []).append(session)
+
+    titles: list[Title] = []
+    for presentation in data["presentations"]:
+        if not isinstance(presentation, dict) or presentation.get("isHidden"):
+            continue
+
+        slug = presentation.get("slug")
+        raw_sessions = sessions_by_presentation.get(slug, [])
+        if not raw_sessions:
+            # A presentation with no sessions is not playing in this window.
+            continue
+
+        show = presentation.get("show") or {}
+        series = _series_tags(presentation, attributes)
+
+        showings = []
+        for session in raw_sessions:
+            fmt = formats.get(session.get("formatSlug")) or {}
+            screen = session.get("screenNumber")
+            status = str(session.get("status") or "").upper().replace("_", "")
+            showings.append(
+                Showing(
+                    showtime=_showtime(session),
+                    format=fmt.get("title") or session.get("formatSlug"),
+                    auditorium=f"Theater {screen}" if screen is not None else None,
+                    sold_out=status == "SOLDOUT",
+                    series_tags=series + _age_policy_tag(session, age_policies),
+                )
+            )
+
+        titles.append(
+            Title(
+                slug=slug,
+                name=show.get("title") or slug,
+                showings=showings,
+                mpa_rating=show.get("certification"),
+                # Alamo does not publish rating reasons. See module docstring.
+                mpa_reason=None,
+                poster_source=_poster(show),
+            )
+        )
+
+    if not titles:
+        raise DiscoveryPending(
+            f"parsed 0 titles from {len(data['presentations'])} presentations and "
+            f"{len(data['sessions'])} sessions — the join key changed."
+        )
+
+    return titles
 
 
 if __name__ == "__main__":

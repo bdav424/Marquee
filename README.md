@@ -9,70 +9,55 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 
 | Step | State |
 |---|---|
-| 1 — Endpoint discovery | **Blocked.** Egress policy denies `drafthouse.com`. Fetch layer written, field mapping deliberately not. |
-| 2 — TMDB enrichment | **Written, never executed.** Same block (`api.themoviedb.org`). Follows TMDB's documented v3 contract. |
-| 3 — Content severity parser | **Built and tested.** Needs no network. |
-| 3b — Series/event treatments | **Built and tested.** Seed vocabulary, needs reconciling against the real feed. |
-| 4 — Display | **Built and verified in Chromium.** Companion page + Scriptable widget. |
+| 1 — Endpoint discovery | **Done.** JSON API found and mapped. |
+| 2 — TMDB enrichment | **Wired, never executed.** Runtime, genres, synopsis. |
+| 3 — Content severity parser | **Built and tested.** Has no input yet — see below. |
+| 3b — Series/event treatments | **Built and tested.** Reconciling against the real feed. |
+| 4 — Display | **Built and verified in Chromium.** Companion page + widget. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-Everything downstream of the feed is finished and verified against fixtures.
-The one thing missing is `alamo.to_titles()` — the mapping from Alamo's field
-names onto `marquee/model.py`. See [the blocker](#the-step-1-blocker).
+The pipeline runs end to end against real Winchester data. 64 tests.
 
-> **Render target changed mid-build.** The brief specified wall furniture — a
-> kiosk legible from across a room. The target is now a phone, which inverts
-> the layout constraints. It also collides with one of the brief's
-> non-negotiables: iOS and Android widgets have no in-widget interaction beyond
-> a tap target, so the drill-in panel **cannot** live inside a home-screen
-> widget. The resolution is a glanceable widget backed by a companion page that
-> carries the full grid and the panels. Tapping the widget opens the page.
+### The feed
 
-### The Step 1 blocker
-
-This is not the 503-to-naive-clients problem described in the brief. Requests
-never reach Alamo's edge at all. The sandbox routes outbound HTTPS through a
-policy-enforcing egress proxy, and that proxy refuses the CONNECT tunnel:
+`drafthouse.com` is an Angular SPA — the served HTML is a 4.5 KB shell with no
+schedule in it, so scraping the page is a dead end. The schedule is a JSON API:
 
 ```
-$ curl https://drafthouse.com/winchester       # realistic UA + full browser headers
-curl: (56) CONNECT tunnel failed, response 403
-
-$ curl -sS "$HTTPS_PROXY/__agentproxy/status"
-"recentRelayFailures": [{
-  "kind": "connect_rejected",
-  "detail": "gateway answered 403 to CONNECT (policy denial or upstream failure)",
-  "host": "drafthouse.com:443"
-}]
+GET https://drafthouse.com/s/mother/v2/schedule/market/winchester
+    -> ~630 KB, {"data": {presentations, sessions, formats, agePolicies, ...}}
 ```
 
-Every host this project needs is denied — `drafthouse.com`, `www.drafthouse.com`,
-`api.themoviedb.org`, `image.tmdb.org`, `www.filmratings.com`, `www.imdb.com`.
-Only source-hosting domains resolve. The proxy documentation is explicit that
-policy denials are to be reported rather than routed around, so no workaround
-was attempted.
+The join is `sessions[].presentationSlug` → `presentations[].slug`. Sessions
+carry time, screen, format and admission policy; presentations carry the film.
+Sibling endpoints harvested from Alamo's JS bundles are in `KNOWN_ENDPOINTS`.
 
-**Consequence:** the field inventory the brief asks for cannot be produced from
-this environment. Discovery has to run from a host with normal outbound access,
-or this sandbox's egress allowlist needs those domains added.
+Two useful things it gives us for free: **Alamo publishes its own poster art**,
+so TMDB is only needed for runtime, genres and synopsis; and every session
+carries `cinemaTimeZoneName`, so showtimes are correct even if the box serving
+the display sits in another timezone.
 
-**What was built instead of guessing.** `marquee/adapters/alamo.py` has its
-transport half written — browser-realistic headers, hydration-payload
-extraction, candidate endpoints — and a `discover()` that dumps a
-pretty-printed sample plus a field inventory, and reports which of the fields
-the display needs were actually found. Its `to_titles()` raises
-`DiscoveryPending` rather than inventing field names, because code that guesses
-a schema looks finished and is confidently wrong.
+### The problem: no rating reasons anywhere
 
-Run this from a box with outbound access:
+**Alamo does not publish MPA rating-reason strings.** It publishes the
+certification (`R`, `PG-13`) and nothing more. A scan of all 630 KB for
+reason-shaped text found only `agePolicies[].name` — admission policies like
+`"Rated PG with Adult Focus"`, not `"Rated R for strong bloody violence"`.
 
-```
-python3 -m marquee.adapters.alamo discover
-```
+TMDB does not carry reason strings either; its maintainers declined to model
+them. So the input the entire content-signal layer was designed around does
+not currently exist, and **every title scores `unknown` and nothing greys.**
 
-`to_titles()` is the only function left to write. Severity, series resolution,
-the build pipeline, the page and the widget are all written against
-`marquee/model.py` and work unchanged the moment it returns real `Title`s.
+The parser is fine. It has nothing to eat.
+
+This is why `unknown` was built as a state distinct from clean. A display that
+defaulted missing reasons to "no content issues" would show a wall of
+confidently unflagged titles and quietly mean nothing. Instead it shows `?`
+and says so.
+
+**The fix is a `filmratings.com` adapter** — the official CARA database, which
+publishes the exact strings the parser was written for. Not yet built. Until
+it is, the only working content signal is the TMDB Horror genre backstop.
 
 ## What is built: the severity parser
 
@@ -210,7 +195,7 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-40 tests: the intensity ladder, clause scoping, longest-match resolution,
+64 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
 retention for series treatments.
@@ -226,7 +211,8 @@ marquee/severity.py        rating-reason parser + threshold evaluation
 marquee/series.py          series tag resolution + visual treatment
 marquee/build.py           combines them into the display snapshot
 marquee/tmdb.py            enrichment + poster caching (written, never executed)
-marquee/adapters/alamo.py  fetch layer + discover(); field mapping NOT written
+marquee/adapters/alamo.py  JSON schedule API + discover() + field mapping
+marquee/images.py          poster caching, never hotlinked
 
 web/                       companion page (phone-first, no framework)
 widget/marquee-widget.js   Scriptable home-screen widget (iOS)

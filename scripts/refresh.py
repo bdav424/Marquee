@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import traceback
 from datetime import datetime, timezone
@@ -24,9 +25,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from dataclasses import replace  # noqa: E402
+
+from marquee import tmdb  # noqa: E402
 from marquee.adapters import alamo  # noqa: E402
 from marquee.build import build_snapshot, write_snapshot  # noqa: E402
-from marquee.model import Snapshot  # noqa: E402
+from marquee.images import cache_image, prune  # noqa: E402
+from marquee.model import Snapshot, Title  # noqa: E402
 from marquee.series import load_series_config  # noqa: E402
 from marquee.severity import load_config  # noqa: E402
 
@@ -74,6 +79,49 @@ def record_parse_failures(payload: dict) -> None:
     )
 
 
+def enrich(titles: list[Title]) -> list[Title]:
+    """Cache poster art and fill runtime/genres/synopsis from TMDB.
+
+    Enrichment is best-effort by design. Alamo already supplies the title,
+    showtimes, certification and poster, so a TMDB outage costs detail, not
+    the display. The one thing worth caring about is `genres`: the Horror
+    backstop is the only content signal that still works while rating reasons
+    are unavailable, and it needs them.
+    """
+    have_key = bool(os.environ.get("TMDB_API_KEY", "").strip())
+    if not have_key:
+        log("TMDB_API_KEY not set — skipping enrichment "
+            "(no runtime, genres or synopsis; the Horror backstop is off)")
+
+    enriched, failures = [], 0
+    for title in titles:
+        poster = cache_image(title.poster_source, title.slug, POSTER_DIR)
+        extra = {}
+        if have_key:
+            try:
+                hit = tmdb.search_movie(title.name)
+                if hit:
+                    found = tmdb.enrich(hit["id"])
+                    extra = {
+                        "runtime_minutes": found["runtime_minutes"],
+                        "genres": found["genres"],
+                        "synopsis": found["synopsis"],
+                    }
+                    # Alamo's certification wins; TMDB's is the fallback.
+                    if not title.mpa_rating and found["certification"]:
+                        extra["mpa_rating"] = found["certification"]
+            except Exception as exc:
+                failures += 1
+                log(f"  tmdb: {title.name}: {str(exc)[:80]}")
+        enriched.append(replace(title, poster=poster, **extra))
+
+    kept = {t.poster for t in enriched if t.poster}
+    dropped = prune(POSTER_DIR, kept)
+    log(f"enriched {len(enriched)} titles "
+        f"({failures} tmdb failures, {len(kept)} posters, {dropped} pruned)")
+    return enriched
+
+
 def emit_stale() -> int:
     """Re-publish the last good snapshot, marked stale. Never blank the screen."""
     if not DISPLAY_JSON.exists():
@@ -95,18 +143,17 @@ def main() -> int:
 
     log("cycle start")
     try:
-        result = alamo.discover()
-        titles = alamo.to_titles(result["payload"])
+        payload = alamo.fetch_json(alamo.SCHEDULE_URL)
+        titles = alamo.to_titles(payload)
+        log(f"fetched {len(titles)} titles from {alamo.SCHEDULE_URL}")
     except alamo.DiscoveryPending as exc:
-        log(f"BLOCKED: {exc}")
+        log(f"SHAPE: {exc}")
         return emit_stale()
     except Exception:
         log("fetch failed:\n" + traceback.format_exc())
         return emit_stale()
 
-    # TMDB enrichment goes here once discovery lands: for each title, search,
-    # enrich, cache the poster. Deliberately not wired up in advance — it
-    # keys off fields to_titles() does not yet produce.
+    titles = enrich(titles)
 
     snapshot = Snapshot(
         theater="Alamo Drafthouse Winchester",

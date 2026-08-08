@@ -195,6 +195,10 @@ Rolling from A toward Z means stepping the drum one flip at a time.
 
 - Flap size is **measured, not guessed** — cells are sized from the row's
   actual width, so the time column cannot be pushed off a narrow screen.
+- **The whole sign is lit**, not just the tiles. The panel behind the flaps
+  glows too, hottest under the lamps at the top and falling off toward the
+  bottom; the only black left is the letters and the physical seams. Tiles
+  separate from the panel by cast shadow and edge, not by sitting on darkness.
 - **Dimming keeps the board lit.** Turning flagged flaps down read as a broken
   bulb; instead the face stays fully lit and the letters fade toward the flap
   colour, holding ~3.8:1 contrast so a weighted row still reads.

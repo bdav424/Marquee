@@ -2,14 +2,18 @@
    Warm illuminated flaps, black letters, hinged at the midline. */
 
 :root {
-  --flap-lit: #F4E4BC;        /* the illuminated flap face */
-  --flap-lit-edge: #D9C393;   /* lower half sits slightly in shadow */
-  --flap-ink: #1A160F;        /* the letters — a touch off pure black so the
-                                 lit face reads as illuminating them */
-  --flap-ink-dim: #7A6E58;    /* flagged: faded toward the flap, still lit */
-  --flap-seam: #0C0A07;       /* the hinge line between halves */
-  --glow: #FFC25C;
-  --wall: #100E0C;
+  /* The whole sign is lit, not just the tiles. The panel behind the flaps
+     glows too; the only black left is the letters and the physical seams. */
+  --wall: #E2CB99;            /* the illuminated panel the flaps sit on */
+  --wall-hot: #F2E3BA;        /* where the lamps sit closest, top centre */
+  --flap-lit: #FCF2D8;        /* flap face, brighter than the panel */
+  --flap-lit-edge: #EBDCB2;   /* lower half sits slightly in shadow */
+  --flap-ink: #17130C;        /* the letters */
+  --flap-ink-dim: #8A7C62;    /* flagged: faded toward the flap, still lit */
+  --flap-seam: rgba(20,16,10,0.72);  /* the hinge line between halves */
+  --glow: #B8600C;            /* accents readable against a lit panel */
+  --ink-soft: rgba(23,19,12,0.62);
+  --ink-faint: rgba(23,19,12,0.44);
 
   --cell-h: 42px;
   --cell-w: 26px;
@@ -22,21 +26,23 @@ html, body {
   margin: 0;
   min-height: 100%;
   background: var(--wall);
-  color: var(--flap-lit);
+  color: var(--flap-ink);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: contain;
 }
 
-/* The filmy wall behind the board: grain plus the board's own spill light. */
+/* The lit panel: lamps hottest at the top, falling off toward the edges, with
+   a little grain so a large flat area of light does not read as dead paper. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 60% at 50% 0%, rgba(255,194,92,0.13), transparent 62%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.017) 0 1px, transparent 1px 3px);
+    radial-gradient(130% 70% at 50% -6%, var(--wall-hot), transparent 68%),
+    radial-gradient(120% 100% at 50% 120%, rgba(150,104,32,0.16), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(90,62,18,0.028) 0 1px, transparent 1px 3px);
   z-index: 0;
 }
 
@@ -57,7 +63,7 @@ body::before {
   justify-content: space-between;
   gap: 10px;
   padding: 0 2px 12px;
-  border-bottom: 1px solid rgba(244,228,188,0.18);
+  border-bottom: 1px solid rgba(23,19,12,0.22);
   margin-bottom: 14px;
 }
 
@@ -66,12 +72,12 @@ body::before {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.26em;
-  color: var(--flap-lit);
-  text-shadow: 0 0 14px rgba(255,194,92,0.5);
+  color: var(--flap-ink);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.55);
 }
 
-.masthead .stamp { font-size: 10px; color: rgba(244,228,188,0.52); letter-spacing: 0.08em; }
-.masthead .stamp.stale { color: var(--glow); }
+.masthead .stamp { font-size: 10px; color: var(--ink-soft); letter-spacing: 0.08em; }
+.masthead .stamp.stale { color: var(--glow); font-weight: 700; }
 
 .viewswap {
   position: fixed;
@@ -80,9 +86,9 @@ body::before {
   z-index: 5;
   padding: 9px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(244,228,188,0.3);
-  background: rgba(20,17,12,0.9);
-  color: var(--flap-lit);
+  border: 1px solid rgba(23,19,12,0.28);
+  background: rgba(252,242,216,0.92);
+  color: var(--flap-ink);
   font: 600 11px/1 ui-monospace, monospace;
   letter-spacing: 0.1em;
   text-decoration: none;
@@ -106,7 +112,7 @@ body::before {
   width: 4px;
   align-self: stretch;
   border-radius: 2px;
-  background: rgba(244,228,188,0.16);
+  background: rgba(23,19,12,0.14);
 }
 
 .split { display: flex; gap: var(--cell-gap); }
@@ -131,9 +137,11 @@ body::before {
   perspective: 190px;
   border-radius: 3px;
   background: var(--flap-seam);
+  /* Lit tile on a lit panel: separation comes from a cast shadow and a dark
+     edge, not from the background being dark. */
   box-shadow:
-    0 0 9px rgba(255,194,92,0.22),
-    inset 0 0 0 1px rgba(0,0,0,0.55);
+    0 2px 3px rgba(60,40,10,0.30),
+    0 0 0 1px rgba(23,19,12,0.34);
   flex: none;
 }
 
@@ -200,13 +208,13 @@ body::before {
   font-size: 8.5px;
   line-height: 1.25;
   letter-spacing: 0.06em;
-  color: rgba(244,228,188,0.6);
+  color: var(--ink-soft);
   overflow: hidden;
 }
 
 .meta .tags { white-space: nowrap; }
 
-.meta .day { font-weight: 700; color: rgba(244,228,188,0.82); }
+.meta .day { font-weight: 700; color: rgba(23,19,12,0.85); }
 .meta .unknown { color: var(--glow); font-weight: 700; }
 .meta .soldout { text-decoration: line-through; }
 
@@ -214,10 +222,10 @@ body::before {
   margin: 18px 2px 0;
   font-size: 10px;
   line-height: 1.6;
-  color: rgba(244,228,188,0.45);
+  color: var(--ink-faint);
 }
 
-.empty { padding: 50px 16px; text-align: center; color: rgba(244,228,188,0.5); }
+.empty { padding: 50px 16px; text-align: center; color: var(--ink-faint); }
 
 /* Cell size is set from measured width in board.js; these are the values
    used before the first measurement lands. */

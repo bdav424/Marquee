@@ -183,7 +183,9 @@ function rows(data) {
 /* ---------- board ---------- */
 
 const TIME_CELLS = 6;
-const CELL_GAP = 2;
+const CELL_GAP = parseFloat(
+  getComputedStyle(document.documentElement).getPropertyValue('--cell-gap')
+) || 2;
 const MIN_CELL_W = 12;
 const META_W = 40;
 

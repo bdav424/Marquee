@@ -24,7 +24,7 @@
 
   --cell-h: 42px;
   --cell-w: 26px;
-  --cell-gap: 2px;
+  --cell-gap: 1px;
 }
 
 * { box-sizing: border-box; }
@@ -219,7 +219,7 @@ body::before {
      edge, not from the background being dark. */
   box-shadow:
     0 2px 3px rgba(60,40,10,0.30),
-    0 0 0 1px var(--letter-rule);
+    0 0 0 0.5px var(--letter-rule);
   flex: none;
 }
 

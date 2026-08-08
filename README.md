@@ -1,7 +1,7 @@
 # Alamo Drafthouse Winchester — Marquee
 
-An always-on wall display for one theater: Alamo Drafthouse Winchester, VA.
-Poster wall, showtimes, series/event tags, and a content-signal layer.
+What's playing at one theater: Alamo Drafthouse Winchester, VA. Poster grid,
+showtimes, series/event tags, and a content-signal layer, on a phone.
 
 Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 
@@ -9,19 +9,24 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 
 | Step | State |
 |---|---|
-| 1 — Endpoint discovery | **Blocked.** Network egress policy denies `drafthouse.com`. See below. |
-| 2 — TMDB enrichment | **Blocked.** Same reason (`api.themoviedb.org`, `image.tmdb.org`). |
+| 1 — Endpoint discovery | **Blocked.** Egress policy denies `drafthouse.com`. Fetch layer written, field mapping deliberately not. |
+| 2 — TMDB enrichment | **Written, never executed.** Same block (`api.themoviedb.org`). Follows TMDB's documented v3 contract. |
 | 3 — Content severity parser | **Built and tested.** Needs no network. |
 | 3b — Series/event treatments | **Built and tested.** Seed vocabulary, needs reconciling against the real feed. |
-| 4 — Display | Not started — waiting on the field inventory and on the widget/companion split. |
-| 5 — Ops (cron, cache, logging) | Not started — shape depends on Step 1. |
+| 4 — Display | **Built and verified in Chromium.** Companion page + Scriptable widget. |
+| 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-> **Render target changed.** The brief specified wall furniture — a kiosk display
-> legible from across a room. The target is now a **phone widget**, which inverts
-> most of the layout constraints (small, close, glanceable) and constrains the
-> drill-in panel, since home-screen widgets do not host interactive panels. The
-> content-signal rules are unaffected; the layout work in Step 4 is not yet
-> started pending that decision.
+Everything downstream of the feed is finished and verified against fixtures.
+The one thing missing is `alamo.to_titles()` — the mapping from Alamo's field
+names onto `marquee/model.py`. See [the blocker](#the-step-1-blocker).
+
+> **Render target changed mid-build.** The brief specified wall furniture — a
+> kiosk legible from across a room. The target is now a phone, which inverts
+> the layout constraints. It also collides with one of the brief's
+> non-negotiables: iOS and Android widgets have no in-widget interaction beyond
+> a tap target, so the drill-in panel **cannot** live inside a home-screen
+> widget. The resolution is a glanceable widget backed by a companion page that
+> carries the full grid and the panels. Tapping the widget opens the page.
 
 ### The Step 1 blocker
 
@@ -50,6 +55,24 @@ was attempted.
 **Consequence:** the field inventory the brief asks for cannot be produced from
 this environment. Discovery has to run from a host with normal outbound access,
 or this sandbox's egress allowlist needs those domains added.
+
+**What was built instead of guessing.** `marquee/adapters/alamo.py` has its
+transport half written — browser-realistic headers, hydration-payload
+extraction, candidate endpoints — and a `discover()` that dumps a
+pretty-printed sample plus a field inventory, and reports which of the fields
+the display needs were actually found. Its `to_titles()` raises
+`DiscoveryPending` rather than inventing field names, because code that guesses
+a schema looks finished and is confidently wrong.
+
+Run this from a box with outbound access:
+
+```
+python3 -m marquee.adapters.alamo discover
+```
+
+`to_titles()` is the only function left to write. Severity, series resolution,
+the build pipeline, the page and the widget are all written against
+`marquee/model.py` and work unchanged the moment it returns real `Title`s.
 
 ## What is built: the severity parser
 
@@ -133,6 +156,52 @@ from the rating chip.
 brief plus public programming names. It has not been reconciled against the
 real Winchester feed, because discovery is blocked.
 
+## What is built: the display
+
+Two surfaces, one cache, one verdict.
+
+**Companion page** (`web/`) — phone-first poster grid, no framework, no build
+step. It reads the cached snapshot and never touches the network at render.
+The content-signal rules are honoured literally:
+
+- Every title playing is **always rendered**. Nothing is ever filtered out.
+- A title tripping a threshold is **desaturated and pushed back**, not removed,
+  and stays tappable.
+- Tapping any title opens a panel naming the category, the score, the threshold
+  it crossed, and the **verbatim** rating string it was derived from.
+- The rating chip shows on every card regardless of verdict.
+- Unknown severity shows a `?` and is described as unknown — not clean.
+
+**Widget** (`widget/marquee-widget.js`) — Scriptable, iOS. The glance: next
+showings, series colour as a leading rule, dimmed titles at reduced alpha, `?`
+for unknown. Tapping opens the companion page. An Android equivalent reads the
+identical JSON.
+
+Neither surface computes a verdict — `marquee/build.py` does, once — so the two
+cannot disagree about whether a title is dimmed.
+
+Verified in Chromium at 390×844: 7 cards render, 3 dimmed, drill-in opens, no
+JS errors, stale banner surfaces correctly.
+
+## What is built: ops
+
+- **6-hour cron** (`scripts/refresh.py`). Alamo posts about a week out; polling
+  harder buys nothing.
+- **Atomic writes** — the snapshot is written to a temp file and renamed, so
+  the display can never read a half-written file.
+- **Stale beats blank.** A failed cycle retains the last good snapshot,
+  re-emits it with `stale: true`, and the header shows its age. Verified: with
+  the adapter blocked, the page renders the full grid under a
+  "Stale — last successful fetch 4 min ago" banner.
+- **Gap logging** (`logs/parse-failures.jsonl`) — every reason-string fragment
+  the vocabulary missed, every string it could not read, and every unconfigured
+  series tag. That is the list to extend the config from.
+- **Posters cached to disk**, never hotlinked, with a generated fallback tile
+  when art is missing.
+
+Deployment, including the systemd unit and the crontab line, is in
+[docs/deploy.md](docs/deploy.md).
+
 ## Running the tests
 
 No dependencies. Python 3.11+ for stdlib `tomllib`.
@@ -141,7 +210,7 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-39 tests: the intensity ladder, clause scoping, longest-match resolution,
+40 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
 retention for series treatments.
@@ -149,23 +218,47 @@ retention for series treatments.
 ## Layout
 
 ```
-config/marquee.toml     tunable vocabulary, ladder, thresholds
-config/series.toml      series/event tag treatments (seed data)
-marquee/severity.py     rating-reason parser + threshold evaluation
-marquee/series.py       series tag resolution + visual treatment
-tests/test_severity.py  regression surface — add mis-read strings here first
-tests/test_series.py    regression surface — add mis-resolved tags here first
+config/marquee.toml        tunable vocabulary, ladder, thresholds
+config/series.toml         series/event tag treatments (seed data)
+
+marquee/model.py           the normalised contract everything is written against
+marquee/severity.py        rating-reason parser + threshold evaluation
+marquee/series.py          series tag resolution + visual treatment
+marquee/build.py           combines them into the display snapshot
+marquee/tmdb.py            enrichment + poster caching (written, never executed)
+marquee/adapters/alamo.py  fetch layer + discover(); field mapping NOT written
+
+web/                       companion page (phone-first, no framework)
+widget/marquee-widget.js   Scriptable home-screen widget (iOS)
+
+scripts/refresh.py         cron entry point — fetch, build, degrade gracefully
+scripts/build_sample.py    display JSON from invented fixtures, not real data
+
+tests/test_severity.py     regression surface — add mis-read strings here first
+tests/test_series.py       regression surface — add mis-resolved tags here first
 ```
 
-## Open questions before Step 4
+## Decisions taken
 
-- **Widget flavour.** A home-screen widget cannot host the clickable drill-in
-  panel the brief calls non-negotiable, so the likely shape is a glanceable
-  widget backed by a companion page that carries the full grid and the panels.
-  Which widget mechanism — Scriptable, a home-screen PWA, or a native build —
-  is unresolved.
-- **Does the wall display still exist**, or has the phone replaced it entirely?
-- Stack confirmation: Python fetcher + plain HTML/CSS/JS display, no framework.
+- **Phone replaces the wall display** entirely. No across-the-room legibility
+  constraint.
+- **Widget + companion page**, since a widget alone cannot satisfy the
+  drill-in requirement.
+- **Scriptable** for the widget — a real home-screen widget that installs
+  without Xcode or an App Store build. iOS only; an Android equivalent reads
+  the same JSON. This one was a judgement call, not confirmed.
+- **Series tags get their own strong treatment**, per-strand colour, distinct
+  from the rating chip, with one-night programming marked and sorted first.
+- Python fetcher, plain HTML/CSS/JS display, no framework. Nothing here
+  justified one.
+
+## Still open
+
+- Egress for `drafthouse.com` and TMDB, without which Step 1 cannot run.
+- Whether Scriptable is the right widget mechanism, or whether this should be
+  an Android or native build.
+- `config/series.toml` is seed data and has never been checked against
+  Winchester's actual programming.
 
 ## Non-goals
 

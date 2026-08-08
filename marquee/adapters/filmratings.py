@@ -6,12 +6,17 @@ database and publishes the exact sentences the severity parser was written
 for — "Rated R for strong bloody violence, language throughout...". Without
 this adapter every title scores `unknown` and nothing ever greys.
 
-STATUS: transport and extraction written, NEVER EXECUTED. The egress policy in
-the environment this was written in blocks www.filmratings.com, so no live
-response has been seen. Extraction is regex-over-text rather than DOM- or
-schema-shaped, which is deliberate: it does not depend on markup structure or
-field names, so it has a fair chance of working first try and degrades to
-`None` rather than to a wrong answer.
+STATUS: search endpoint confirmed live; extraction confirmed to read a real
+reason out of a real page. Result verification is written but has NOT been
+confirmed against live markup — see extract_reason_for.
+
+A CARA search returns every film whose name contains the query. The first
+version of this took the first "Rated X for" on the page and attributed it to
+whatever was searched for, which pulled an R-rated stranger's reason onto a
+PG-13 film. That is the worst thing this adapter can do: not a gap, but a
+confident wrong verdict with an explanation attached. Reasons are now accepted
+only when the film's own title appears just above them and, when the caller
+knows it, the certification agrees.
 
 Run `discover()` from a host with outbound access to confirm or correct it:
 
@@ -44,11 +49,10 @@ BROWSER_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
-# Tried in order. The first is the XHR endpoint the site's own search box
-# appears to use; the others are the plain search page.
+# Confirmed live 2026-08-08. /Search/GetSearchResults 404s and was dropped;
+# the x/y parameters make no difference to the response, so one request per
+# lookup is all this costs.
 SEARCH_CANDIDATES = [
-    "https://www.filmratings.com/Search/GetSearchResults?filmTitle={q}&x=0&y=0",
-    "https://www.filmratings.com/Search?filmTitle={q}&x=0&y=0",
     "https://www.filmratings.com/Search?filmTitle={q}",
 ]
 
@@ -102,13 +106,31 @@ def normalise_title(title: str) -> str:
     return _PUNCT.sub(" ", text).strip()
 
 
-def strip_decoration(title: str) -> str:
-    """Drop Alamo's programming prefixes before searching CARA.
+# Only these are stripped. An earlier version matched any short word before a
+# colon, which ate "Spider-Man:" out of "Spider-Man: Brand New Day" and sent a
+# search for the wrong film entirely. A colon is part of plenty of real titles,
+# so the list is a whitelist and stays one.
+PROGRAMMING_PREFIXES = (
+    "terror tuesday", "weird wednesday", "video vortex", "movie party",
+    "champagne cinema", "kids camp", "time capsule", "alamo time capsule",
+    "only at the alamo", "the alamo presents", "alamo presents",
+    "afs presents", "cinema club", "big screen classics",
+)
 
-    "Terror Tuesday: The Thing" will not match anything in the MPA database;
-    "The Thing" will.
+_PREFIX_RE = re.compile(
+    r"^(?:" + "|".join(re.escape(p) for p in PROGRAMMING_PREFIXES) + r")\s*[:\-]\s*",
+    re.IGNORECASE,
+)
+
+
+def strip_decoration(title: str) -> str:
+    """Drop Alamo's programming decoration before searching CARA.
+
+    "Terror Tuesday: The Thing" matches nothing in the MPA database; "The
+    Thing" does. But "Spider-Man: Brand New Day" must be left alone — the
+    colon is part of the title.
     """
-    cleaned = re.sub(r"^[^:]{3,30}:\s+", "", title).strip()
+    cleaned = _PREFIX_RE.sub("", title).strip()
     cleaned = re.sub(r"\s+[-–]\s+(35mm|70mm|dcp|imax).*$", "", cleaned, flags=re.I)
     # A trailing year helps a human disambiguate and only confuses the search.
     cleaned = re.sub(r"\s*\((?:19|20)\d{2}\)\s*$", "", cleaned).strip()
@@ -124,17 +146,26 @@ def fetch(url: str, timeout: int = 25) -> str:
         raise LookupFailed(f"{url}: {exc}") from exc
 
 
-def extract_reason(text: str) -> tuple[str | None, str | None]:
-    """Pull (certification, reason) out of a response body.
+# How far back from a reason to look for the film title it belongs to. A CARA
+# search result puts the title above its reason; this spans one result block
+# without reaching into the previous one.
+TITLE_WINDOW = 700
 
-    Returns (None, None) rather than guessing when nothing matches — an
-    unreadable page must leave the title `unknown`, not fabricate a verdict.
+
+def _format(certification: str, body: str) -> str:
+    return f"Rated {certification.upper()} for {' '.join(body.split())}."
+
+
+def extract_reason(text: str) -> tuple[str | None, str | None]:
+    """First reason on the page, with NO check of which film it belongs to.
+
+    Only safe on a page known to describe a single film. For a search results
+    page use extract_reason_for(), which verifies the title — otherwise the
+    first result on the page gets attributed to whatever you searched for.
     """
     match = REASON_RE.search(text)
     if match:
-        certification = match.group(1).upper()
-        reason = " ".join(match.group(2).split())
-        return certification, f"Rated {certification} for {reason}."
+        return match.group(1).upper(), _format(match.group(1), match.group(2))
 
     match = BARE_REASON_RE.search(text)
     if match:
@@ -143,7 +174,44 @@ def extract_reason(text: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def lookup(title: str, delay: float = REQUEST_DELAY) -> Reason:
+def extract_reason_for(
+    text: str, title: str, expect_certification: str | None = None
+) -> tuple[str | None, str | None]:
+    """The reason belonging to `title`, or (None, None).
+
+    A CARA search for "The Thing" returns every film whose name contains those
+    words. Taking the first reason on the page attributes a stranger's rating
+    to our film — worse than having no reason at all, because a wrong verdict
+    greys a title with a confident explanation attached.
+
+    Two guards. The film's own title must appear in the markup just above the
+    reason, and when the caller knows the certification from Alamo, it must
+    agree. Failing either yields nothing, which leaves the title `unknown`.
+    """
+    wanted = normalise_title(strip_decoration(title))
+    if not wanted:
+        return None, None
+
+    for match in REASON_RE.finditer(text):
+        certification = match.group(1).upper()
+
+        if expect_certification and certification != expect_certification.upper():
+            continue
+
+        window = text[max(0, match.start() - TITLE_WINDOW):match.start()]
+        if wanted not in normalise_title(window):
+            continue
+
+        return certification, _format(certification, match.group(2))
+
+    return None, None
+
+
+def lookup(
+    title: str,
+    delay: float = REQUEST_DELAY,
+    expect_certification: str | None = None,
+) -> Reason:
     """Search CARA for a title's rating reason.
 
     Raises LookupFailed only on transport trouble. A film that genuinely is
@@ -163,7 +231,9 @@ def lookup(title: str, delay: float = REQUEST_DELAY) -> Reason:
             errors.append(str(exc))
             continue
 
-        certification, reason = extract_reason(body)
+        certification, reason = extract_reason_for(
+            body, title, expect_certification
+        )
         if reason:
             return Reason(certification, reason, url)
 
@@ -236,16 +306,22 @@ def discover(title: str) -> None:
             continue
 
         kind = "JSON" if body.lstrip()[:1] in "{[" else "HTML"
-        certification, reason = extract_reason(body)
+        naive_cert, naive = extract_reason(body)
+        certification, reason = extract_reason_for(body, title)
         print(f"{kind}  {len(body):>7} bytes  {url}")
-        print(f"      extracted: {certification} / {reason!r}")
+        print(f"      VERIFIED (used) : {certification} / {reason!r}")
+        print(f"      first-on-page   : {naive_cert} / {naive!r}")
+        if naive and naive != reason:
+            print("      ^ these differ — verification is doing real work here")
 
         if not reason:
             hits = re.findall(rf"[^<>]*\bRated\s+(?:{CERTIFICATIONS})\b[^<>]*", body)
             if hits:
-                print("      NOT MATCHED, but these look close — fix REASON_RE:")
-                for hit in hits[:5]:
-                    print(f"        {' '.join(hit.split())[:150]}")
+                print("      no VERIFIED match. Reasons on the page were:")
+                for hit in hits[:6]:
+                    print(f"        {' '.join(hit.split())[:130]}")
+                print("      If one of these IS the film, the title-window check")
+                print("      needs widening or the markup differs from expected.")
             else:
                 print("      no rating-shaped text at all in this response")
                 print(f"      first 400 chars: {' '.join(body.split())[:400]}")

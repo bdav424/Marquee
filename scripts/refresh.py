@@ -147,7 +147,11 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
         found = cache.get(title.name)
         if found is None:
             try:
-                found = filmratings.lookup(title.name)
+                # Alamo's certification is a second guard: a CARA row whose
+                # rating disagrees is not this film.
+                found = filmratings.lookup(
+                    title.name, expect_certification=title.mpa_rating
+                )
                 cache.put(title.name, found)
                 fresh += 1
             except filmratings.LookupFailed as exc:

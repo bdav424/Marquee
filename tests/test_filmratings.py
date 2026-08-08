@@ -18,9 +18,60 @@ from marquee.adapters.filmratings import (
     Reason,
     ReasonCache,
     extract_reason,
+    extract_reason_for,
     normalise_title,
     strip_decoration,
 )
+
+# A CARA search returns every film whose name contains the query, each with
+# its own reason. Attributing the wrong row to our film is the worst failure
+# this adapter can produce: a confident, explained, incorrect verdict.
+RESULTS_PAGE = '''
+<table>
+ <tr><td class="title">BRAND NEW DAY</td>
+     <td class="rating">Rated R for pervasive language, drug use, and sexual
+     content/nudity.</td></tr>
+ <tr><td class="title">SPIDER-MAN: BRAND NEW DAY</td>
+     <td class="rating">Rated PG-13 for sequences of action and violence.</td></tr>
+ <tr><td class="title">A BRAND NEW DAY FOR US</td>
+     <td class="rating">Rated G for general audiences.</td></tr>
+</table>
+'''
+
+
+class TestResultVerification(unittest.TestCase):
+    def test_picks_the_row_belonging_to_the_film(self):
+        cert, reason = extract_reason_for(RESULTS_PAGE, "Spider-Man: Brand New Day")
+        self.assertEqual(cert, "PG-13")
+        self.assertIn("sequences of action", reason)
+
+    def test_does_not_take_the_first_reason_on_the_page(self):
+        # Regression: the naive extractor returned the R-rated stranger above.
+        _, reason = extract_reason_for(RESULTS_PAGE, "Spider-Man: Brand New Day")
+        self.assertNotIn("pervasive language", reason)
+
+    def test_certification_mismatch_is_rejected(self):
+        # Alamo says PG-13; a row claiming R is not our film.
+        self.assertEqual(
+            extract_reason_for(RESULTS_PAGE, "Spider-Man: Brand New Day", "R"),
+            (None, None),
+        )
+
+    def test_certification_agreement_is_accepted(self):
+        cert, reason = extract_reason_for(
+            RESULTS_PAGE, "Spider-Man: Brand New Day", "PG-13"
+        )
+        self.assertIsNotNone(reason)
+
+    def test_film_absent_from_results_yields_nothing(self):
+        self.assertEqual(extract_reason_for(RESULTS_PAGE, "Ironwood"), (None, None))
+
+    def test_shorter_title_still_matches_its_own_row(self):
+        cert, reason = extract_reason_for(RESULTS_PAGE, "Brand New Day")
+        self.assertEqual(cert, "R")
+
+    def test_empty_title_yields_nothing(self):
+        self.assertEqual(extract_reason_for(RESULTS_PAGE, ""), (None, None))
 
 
 class TestExtraction(unittest.TestCase):
@@ -83,6 +134,14 @@ class TestTitleCleanup(unittest.TestCase):
 
     def test_leaves_a_plain_title_alone(self):
         self.assertEqual(strip_decoration("Ironwood"), "Ironwood")
+
+    def test_does_not_eat_a_colon_that_is_part_of_the_title(self):
+        # Regression: a generic "word colon" rule turned
+        # "Spider-Man: Brand New Day" into "Brand New Day" and searched CARA
+        # for a different film.
+        for real in ("Spider-Man: Brand New Day", "Mission: Impossible",
+                     "Blade Runner 2049: The Final Cut"):
+            self.assertEqual(strip_decoration(real), real)
 
     def test_never_strips_a_title_to_nothing(self):
         self.assertTrue(strip_decoration("Movie Party: "))

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#E2CB99">
+<meta name="theme-color" content="#0E0C0A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Winchester Marquee — Board</title>
@@ -12,19 +12,25 @@
 </head>
 <body>
 
-<div class="board">
-  <header class="masthead">
-    <h1>WINCHESTER</h1>
-    <span class="stamp" id="stamp">…</span>
-  </header>
+<div class="stage">
+  <!-- The sign is a bounded object on the wall, sized to its content. -->
+  <div class="sign">
+    <div class="face">
+      <header class="masthead">
+        <h1>WINCHESTER</h1>
+        <span class="stamp" id="stamp">…</span>
+      </header>
 
-  <div id="rows"></div>
+      <div id="rows"></div>
 
-  <p id="empty" class="empty" hidden>Nothing left on the board.</p>
+      <p id="empty" class="empty" hidden>Nothing left on the board.</p>
+    </div>
+  </div>
 
   <p class="legend">
-    Dimmed flaps tripped a content threshold. <b>?</b> means the rating reason
-    could not be read — unknown, not clean. Tap any row for the full reason.
+    Dimmed flaps tripped a content threshold. <b>?</b> means the rating
+    reason could not be read — unknown, not clean. Tap any row for the full
+    reason.
   </p>
 </div>
 

@@ -4,8 +4,10 @@
 :root {
   /* The whole sign is lit, not just the tiles. The panel behind the flaps
      glows too; the only black left is the letters and the physical seams. */
-  --wall: #E2CB99;            /* the illuminated panel the flaps sit on */
-  --wall-hot: #F2E3BA;        /* where the lamps sit closest, top centre */
+  --face: #E2CB99;            /* the illuminated sign face the flaps sit on */
+  --face-hot: #F2E3BA;        /* where the lamps sit closest, top centre */
+  --wall: #0E0C0A;            /* the theatre wall the sign hangs on */
+  --bulb: #FFD98A;            /* the border lamps */
   --flap-lit: #FCF2D8;        /* flap face, brighter than the panel */
   --flap-lit-edge: #EBDCB2;   /* lower half sits slightly in shadow */
   --flap-ink: #17130C;        /* the letters */
@@ -32,27 +34,81 @@ html, body {
   overscroll-behavior-y: contain;
 }
 
-/* The lit panel: lamps hottest at the top, falling off toward the edges, with
-   a little grain so a large flat area of light does not read as dead paper. */
+/* The wall: dark, with the sign's own light spilling onto it. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(130% 70% at 50% -6%, var(--wall-hot), transparent 68%),
-    radial-gradient(120% 100% at 50% 120%, rgba(150,104,32,0.16), transparent 62%),
-    repeating-linear-gradient(0deg, rgba(90,62,18,0.028) 0 1px, transparent 1px 3px);
+    radial-gradient(90% 46% at 50% 12%, rgba(255,196,104,0.20), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.014) 0 1px, transparent 1px 3px);
   z-index: 0;
 }
 
-.board {
+.stage {
   position: relative;
   z-index: 1;
-  overflow-x: hidden;
-  padding: max(14px, env(safe-area-inset-top)) 10px 28px;
+  padding: max(14px, env(safe-area-inset-top)) 6px
+           calc(72px + env(safe-area-inset-bottom));
   max-width: 760px;
   margin: 0 auto;
+}
+
+/* The sign itself: a bounded object hanging on the wall, sized to its
+   content. Running the lit face to the bottom of the viewport read as a blank
+   page rather than signage — a marquee has edges. */
+.sign {
+  position: relative;
+  border-radius: 16px;
+  padding: 12px;
+  background: linear-gradient(180deg, #2C2317 0%, #1B140C 55%, #241B11 100%);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.75),
+    0 14px 40px rgba(0,0,0,0.6),
+    0 0 70px rgba(255,190,96,0.18);
+}
+
+/* Border lamps, marching slowly around the bezel. Four gradient strips, one
+   per edge — cheaper than a hundred elements and it animates by sliding the
+   background rather than laying anything out. */
+.sign::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  border-radius: 12px;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-position: left top, left bottom, left top, right top;
+  background-size: 17px 11px, 17px 11px, 11px 17px, 11px 17px;
+  background-image:
+    radial-gradient(circle 2.6px at 8.5px 5.5px, var(--bulb) 0 100%, transparent 100%),
+    radial-gradient(circle 2.6px at 8.5px 5.5px, var(--bulb) 0 100%, transparent 100%),
+    radial-gradient(circle 2.6px at 5.5px 8.5px, var(--bulb) 0 100%, transparent 100%),
+    radial-gradient(circle 2.6px at 5.5px 8.5px, var(--bulb) 0 100%, transparent 100%);
+  filter: drop-shadow(0 0 4px rgba(255,201,110,0.85));
+  animation: chase 1.9s linear infinite;
+}
+
+@keyframes chase {
+  to {
+    background-position:
+      17px top, left calc(100% - 17px),
+      left calc(100% + 17px), right -17px;
+  }
+}
+
+.face {
+  position: relative;
+  border-radius: 7px;
+  overflow: hidden;
+  padding: 13px 8px 15px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--face-hot), transparent 70%),
+    radial-gradient(120% 100% at 50% 130%, rgba(150,104,32,0.18), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(90,62,18,0.03) 0 1px, transparent 1px 3px),
+    var(--face);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), inset 0 2px 14px rgba(80,52,12,0.28);
 }
 
 /* ---------- header ---------- */
@@ -86,9 +142,9 @@ body::before {
   z-index: 5;
   padding: 9px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(23,19,12,0.28);
-  background: rgba(252,242,216,0.92);
-  color: var(--flap-ink);
+  border: 1px solid rgba(255,217,138,0.35);
+  background: rgba(20,16,10,0.92);
+  color: var(--bulb);
   font: 600 11px/1 ui-monospace, monospace;
   letter-spacing: 0.1em;
   text-decoration: none;
@@ -100,7 +156,7 @@ body::before {
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 7px 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -218,12 +274,14 @@ body::before {
 .meta .unknown { color: var(--glow); font-weight: 700; }
 .meta .soldout { text-decoration: line-through; }
 
+/* Outside the sign, on the wall — so it needs wall-side colours. */
 .legend {
-  margin: 18px 2px 0;
+  margin: 16px 6px 0;
   font-size: 10px;
   line-height: 1.6;
-  color: var(--ink-faint);
+  color: rgba(244,228,188,0.45);
 }
+.legend b { color: var(--bulb); }
 
 .empty { padding: 50px 16px; text-align: center; color: var(--ink-faint); }
 
@@ -234,4 +292,5 @@ body::before {
    the board — reduced motion snaps straight to the final characters. */
 @media (prefers-reduced-motion: reduce) {
   .flap { display: none; }
+  .sign::before { animation: none; }
 }

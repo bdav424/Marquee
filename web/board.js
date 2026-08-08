@@ -184,7 +184,7 @@ function rows(data) {
 
 const TIME_CELLS = 6;
 const CELL_GAP = 2;
-const MIN_CELL_W = 13;
+const MIN_CELL_W = 12;
 const META_W = 40;
 
 /* Cell size is measured, not guessed. A fixed cell width overflowed the row
@@ -192,7 +192,7 @@ const META_W = 40;
    board now fits itself to the space it actually has. */
 function layout() {
   const container = document.getElementById('rows');
-  const avail = container.clientWidth - 4 /* strip */ - 16 /* gaps */ - META_W;
+  const avail = container.clientWidth - 4 /* strip */ - 20 /* row gaps */ - META_W;
 
   // Take as many title flaps as fit without dropping below a legible cell.
   let titleCells = 18;

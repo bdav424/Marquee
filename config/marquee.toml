@@ -1,0 +1,131 @@
+# Marquee content-signal configuration.
+#
+# Everything the severity parser does is driven from this file. Nothing in
+# severity.py hardcodes a keyword, a modifier, or a threshold — tune here.
+#
+# Reload is per-process: the fetcher reads this at start of each cron run.
+
+[parser]
+# Lead-ins stripped before parsing. Matched case-insensitively, anchored at
+# the start of the string. First match wins.
+strip_prefixes = [
+  "rated r for",
+  "rated pg-13 for",
+  "rated pg for",
+  "rated g for",
+  "rated nc-17 for",
+  "rated",
+  "for",
+]
+
+# Bare category noun with no modifier in scope -> this level.
+default_level = 2
+
+# "some violence and gore": the second fragment carries no modifier of its
+# own, so it inherits the leading modifier of its comma-segment ("some" -> 1)
+# instead of falling back to default_level. Set false for stricter literal
+# parsing, in which case bare "gore" scores 2.
+inherit_modifiers_across_conjunction = true
+
+
+# --- Categories -------------------------------------------------------------
+# Keyword -> category. Matching is longest-first and consuming, so
+# "disturbing images" resolves to violence and does NOT also trip the
+# "disturbing" keyword under frightening.
+
+[categories]
+sexual = [
+  "sexual assault",
+  "sexual references",
+  "sexual content",
+  "suggestive material",
+  "sexuality",
+  "sensuality",
+  "nudity",
+]
+violence = [
+  "disturbing images",
+  "violence",
+  "action",
+  "bloody",
+  "gore",
+  "gruesome",
+  "torture",
+  "sadistic",
+]
+language = [
+  "crude humor",
+  "profanity",
+  "language",
+]
+substance = [
+  "drug use",
+  "drug content",
+  "drinking",
+  "smoking",
+]
+frightening = [
+  "terror",
+  "horror",
+  "frightening",
+  "disturbing",
+]
+
+# --- Additions beyond the original spec -------------------------------------
+# These are real strings the MPA uses that the starting keyword sets miss.
+# They are listed separately so they are easy to audit or delete; at load time
+# they are merged into the sets above. Delete this whole table to get back to
+# exactly the spec'd vocabulary.
+[categories_extra]
+sexual = ["strong sexual content", "graphic nudity", "sexual material"]
+violence = ["violent content", "grisly images", "bloody images", "violent images"]
+language = ["sexual language", "crude sexual humor"]
+substance = ["drug material", "alcohol use", "substance abuse", "drug references"]
+frightening = ["peril", "scary images", "menace"]
+
+
+# --- Intensity ladder -------------------------------------------------------
+# A term may legitimately appear both here and under [categories] — "bloody"
+# is a violence keyword AND a level-3 modifier. Modifier scanning runs against
+# the original fragment text, independent of keyword consumption, so
+# "bloody violence" scores 3 rather than falling back to default_level.
+
+[intensity]
+1 = ["brief", "some", "mild", "partial", "thematic", "suggestive", "momentary", "brief moments of"]
+2 = []
+3 = [
+  "strong",
+  "graphic",
+  "explicit",
+  "pervasive",
+  "throughout",
+  "grisly",
+  "bloody",
+  "sadistic",
+  "disturbing",
+  "intense",
+  "relentless",
+  "extreme",
+]
+
+
+# --- Flagging thresholds ----------------------------------------------------
+# Score >= value  ->  the title renders greyed/desaturated.
+# `false` means this category NEVER flags, no matter how it scores. Its chip
+# still renders; it just carries no weight.
+#
+# A category scoring `unknown` never flags on its own — unknown is surfaced in
+# the UI as unknown, not silently treated as clean or as dirty.
+
+[thresholds]
+sexual = 1
+violence = 3
+frightening = 2
+language = false
+substance = false
+
+
+[genre_flags]
+# TMDB genre names that flag on their own, independent of any rating string.
+# Backstop for horror that carries a mild reason string, or none at all.
+tmdb_genres = ["Horror"]

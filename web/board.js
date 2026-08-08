@@ -19,9 +19,11 @@ const POLL_MS = 60000;
 const DRUM = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.,\'&!?-/+';
 const DRUM_INDEX = new Map([...DRUM].map((c, i) => [c, i]));
 
-const FLIP_MS = 62;        // one flap, top half plus bottom half
-const COL_STAGGER = 26;    // each column starts slightly after the one left of it
-const ROW_STAGGER = 90;
+// One full 180deg turn. At 62ms the fold was over before the eye caught it;
+// the Solari references sit around 150ms and 100 keeps a long roll bearable.
+const FLIP_MS = 100;
+const COL_STAGGER = 18;    // each column starts slightly after the one left of it
+const ROW_STAGGER = 70;
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -41,13 +43,18 @@ class Cell {
     this.el.innerHTML =
       '<div class="half top"><div class="ink"></div></div>' +
       '<div class="half bottom"><div class="ink"></div></div>' +
-      '<div class="flap front"><div class="ink"></div></div>' +
-      '<div class="flap back"><div class="ink"></div></div>';
+      '<div class="flip">' +
+        '<div class="side front"><div class="ink"></div><div class="shade"></div></div>' +
+        '<div class="side back"><div class="ink"></div><div class="shade"></div></div>' +
+      '</div>';
 
-    const ink = this.el.querySelectorAll('.ink');
-    [this.topInk, this.bottomInk, this.frontInk, this.backInk] = ink;
-    this.front = this.el.querySelector('.flap.front');
-    this.back = this.el.querySelector('.flap.back');
+    this.flipEl = this.el.querySelector('.flip');
+    this.topInk = this.el.querySelector('.half.top .ink');
+    this.bottomInk = this.el.querySelector('.half.bottom .ink');
+    this.frontInk = this.el.querySelector('.side.front .ink');
+    this.backInk = this.el.querySelector('.side.back .ink');
+    this.frontShade = this.el.querySelector('.side.front .shade');
+    this.backShade = this.el.querySelector('.side.back .shade');
     this.paint(' ');
   }
 
@@ -80,37 +87,42 @@ class Cell {
     this.running = false;
   }
 
-  /* One flap: front falls away revealing the new top, back swings down
-     covering the old bottom. */
+  /* One card, hinged at the midline, turning a continuous 180deg: it starts
+     covering the top half showing the outgoing glyph and lands covering the
+     bottom half showing the incoming one. The static halves underneath are
+     set so the top is already the new glyph (revealed as the card leaves) and
+     the bottom is still the old one (hidden as the card arrives). */
   async flip(next) {
-    this.frontInk.textContent = this.current;  // outgoing, on the falling face
-    this.backInk.textContent = next;           // incoming, on the swinging face
-    this.topInk.textContent = next;            // revealed as the front falls
-    // bottom still shows the outgoing glyph until the back flap covers it.
+    this.frontInk.textContent = this.current;
+    this.backInk.textContent = next;
+    this.topInk.textContent = next;
 
     this.el.classList.add('flipping');
 
-    await animate(this.front,
-      [{ transform: 'rotateX(0deg)', filter: 'brightness(1)' },
-       { transform: 'rotateX(-90deg)', filter: 'brightness(0.72)' }],
-      FLIP_MS / 2, 'ease-in');
+    const running = [
+      this.flipEl.animate(
+        [{ transform: 'rotateX(0deg)' }, { transform: 'rotateX(-180deg)' }],
+        { duration: FLIP_MS, easing: 'cubic-bezier(0.36, 0.06, 0.42, 1)' }),
 
-    this.front.style.visibility = 'hidden';
+      // Shadow ramps across the fold. Without it the rotation is nearly
+      // invisible against a flat lit face and reads as a text swap.
+      this.frontShade.animate(
+        [{ opacity: 0 }, { opacity: 0.9 }],
+        { duration: FLIP_MS / 2, easing: 'ease-in', fill: 'forwards' }),
 
-    await animate(this.back,
-      [{ transform: 'rotateX(90deg)', filter: 'brightness(0.72)' },
-       { transform: 'rotateX(0deg)', filter: 'brightness(1)' }],
-      FLIP_MS / 2, 'ease-out');
+      this.backShade.animate(
+        [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.5 }, { opacity: 0, offset: 1 }],
+        { duration: FLIP_MS, easing: 'linear', fill: 'forwards' }),
+    ];
+
+    await Promise.all(running.map(a => a.finished.catch(() => {})));
 
     this.el.classList.remove('flipping');
-    this.front.style.visibility = '';
+    // Filled animations accumulate on the element otherwise — one per flip,
+    // forever, on every cell.
+    for (const animation of running) animation.cancel();
     this.paint(next);
   }
-}
-
-function animate(el, frames, duration, easing) {
-  return el.animate(frames, { duration, easing, fill: 'forwards' }).finished
-    .catch(() => {});
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -212,7 +212,7 @@ body::before {
   position: relative;
   width: var(--cell-w);
   height: var(--cell-h);
-  perspective: 190px;
+  perspective: 200px;
   border-radius: 3px;
   background: var(--flap-seam);
   /* Lit tile on a lit panel: separation comes from a cast shadow and a dark
@@ -223,28 +223,90 @@ body::before {
   flex: none;
 }
 
-/* Static halves. The top shows the incoming glyph, the bottom the outgoing
-   one, and the two moving flaps cover each in turn. */
-.half,
-.flap {
+/* One panel, hinged at the cell's midline, sweeping a continuous 180deg.
+   An earlier version used two elements doing 90deg each; at the halfway point
+   one vanished and a different one appeared, so no single card ever travelled
+   across the middle and the whole thing read as the letter simply changing.
+   Structure follows the Solari references: static halves underneath, one
+   preserve-3d flipper on top carrying both faces. */
+
+.half {
   position: absolute;
   left: 0;
   right: 0;
   height: 50%;
   overflow: hidden;
-  backface-visibility: hidden;
+  z-index: 1;
 }
 
-.half.top, .flap.front { top: 0; border-radius: 3px 3px 0 0; }
-.half.bottom, .flap.back { top: 50%; border-radius: 0 0 3px 3px; }
+.half.top { top: 0; border-radius: 3px 3px 0 0; }
+.half.bottom { top: 50%; border-radius: 0 0 3px 3px; }
 
-.half.top, .flap.front {
+.half.top {
   background: linear-gradient(180deg, var(--flap-lit), #EBD9AC);
   border-bottom: 1px solid var(--hinge);
 }
 
-.half.bottom, .flap.back {
+.half.bottom {
   background: linear-gradient(180deg, var(--flap-lit-edge), #C9B183);
+}
+
+/* The travelling card. Hinged at the midline, so rotating -180deg carries it
+   from covering the top half to covering the bottom half. */
+.flip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  z-index: 10;
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  visibility: hidden;
+}
+
+.cell.flipping .flip { visibility: visible; }
+
+/* Named .side, not .face: the sign's lit panel is already .face, and an
+   absolutely-positioned .face rule pulled that panel out of flow and
+   collapsed the whole sign. */
+.side {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+/* Front carries the outgoing glyph's top half. Back carries the incoming
+   glyph's bottom half, pre-rotated so the parent's -180deg lands it upright. */
+.side.front {
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--flap-lit), #EBD9AC);
+  border-bottom: 1px solid var(--hinge);
+}
+
+.side.back {
+  transform: rotateX(180deg);
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(0deg, var(--flap-lit-edge), #C9B183);
+}
+
+/* The depth cue. Without a shadow ramping across the fold the rotation is
+   nearly invisible on a flat lit face — this is what makes it read as a card
+   turning rather than text being replaced. */
+.shade {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.side.front .shade {
+  background: linear-gradient(180deg, rgba(24,16,4,0.04), rgba(24,16,4,0.62));
+}
+
+.side.back .shade {
+  background: linear-gradient(0deg, rgba(24,16,4,0.06), rgba(24,16,4,0.70));
 }
 
 /* The glyph is drawn at full cell height inside a half-height window, so each
@@ -259,21 +321,13 @@ body::before {
   font-size: calc(var(--cell-h) * 0.62);
   font-weight: 700;
   color: var(--flap-ink);
-  /* A little bloom off the lit face, so the letters glow rather than sit flat. */
   text-shadow:
     0 1px 0 rgba(255,255,255,0.5),
     0 0 6px rgba(255,214,140,0.28);
 }
 
-.half.top .ink, .flap.front .ink { top: 0; }
-.half.bottom .ink, .flap.back .ink { top: -100%; }
-
-/* Hinges: the front flap swings down from the midline, the back flap swings
-   in behind it. Both start life invisible until a flip is running. */
-.flap { z-index: 3; visibility: hidden; }
-.flap.front { transform-origin: 50% 100%; }
-.flap.back  { transform-origin: 50% 0%; transform: rotateX(90deg); }
-.cell.flipping .flap { visibility: visible; }
+.half.top .ink, .side.front .ink { top: 0; }
+.half.bottom .ink, .side.back .ink { top: -100%; }
 
 /* ---------- non-flap bits of a row ---------- */
 
@@ -313,6 +367,6 @@ body::before {
 /* Motion is the whole point here, but it must never be the only way to read
    the board — reduced motion snaps straight to the final characters. */
 @media (prefers-reduced-motion: reduce) {
-  .flap { display: none; }
+  .flip { display: none; }
   .sign::before { animation: none; }
 }

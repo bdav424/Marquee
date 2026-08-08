@@ -343,3 +343,20 @@ h1 {
 .synopsis { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
 
 .empty { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 13px; }
+
+/* Link across to the split-flap board. */
+.viewswap {
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 30;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: rgba(11,11,14,0.9);
+  color: var(--text);
+  font: 600 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+}

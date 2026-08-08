@@ -1,8 +1,8 @@
 {
   "theater": "Alamo Drafthouse Winchester",
-  "fetched_at": "2026-08-08T15:47:36.448052+00:00",
-  "generated_at": "2026-08-08T21:18:12.193746+00:00",
-  "stale": true,
+  "fetched_at": "2026-08-08T21:43:14.599193+00:00",
+  "generated_at": "2026-08-08T21:43:14.605776+00:00",
+  "stale": false,
   "thresholds": {
     "sexual": 1,
     "violence": 3,

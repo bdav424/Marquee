@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#100E0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Winchester Marquee — Board</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+
+<div class="board">
+  <header class="masthead">
+    <h1>WINCHESTER</h1>
+    <span class="stamp" id="stamp">…</span>
+  </header>
+
+  <div id="rows"></div>
+
+  <p id="empty" class="empty" hidden>Nothing left on the board.</p>
+
+  <p class="legend">
+    Dimmed flaps tripped a content threshold. <b>?</b> means the rating reason
+    could not be read — unknown, not clean. Tap any row for the full reason.
+  </p>
+</div>
+
+<a class="viewswap" href="index.html">GRID →</a>
+
+<script src="board.js"></script>
+</body>
+</html>

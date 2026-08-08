@@ -188,6 +188,24 @@ The content-signal rules are honoured literally:
 - The rating chip shows on every card regardless of verdict.
 - Unknown severity shows a `?` and is described as unknown — not clean.
 
+**Split-flap board** (`web/board.html`) — a Solari marquee. Every character is
+a real flap: hinged at the midline, the lit face falls forward covering the
+outgoing letter while the incoming letter's lower half swings down behind it.
+Rolling from A toward Z means stepping the drum one flip at a time.
+
+- Flap size is **measured, not guessed** — cells are sized from the row's
+  actual width, so the time column cannot be pushed off a narrow screen.
+- **Dimming keeps the board lit.** Turning flagged flaps down read as a broken
+  bulb; instead the face stays fully lit and the letters fade toward the flap
+  colour, holding ~3.8:1 contrast so a weighted row still reads.
+- The next showing is always the next one **not yet started**, so once the
+  day's last screening has gone the row rolls onto tomorrow by itself.
+- A data change re-rolls only what actually changed; an in-flight roll is
+  superseded rather than queued, so the board never chases a stale target.
+- Tapping a row deep-links to the grid's drill-in panel — the board is the
+  glance, the panel is where a verdict explains itself.
+- `prefers-reduced-motion` snaps straight to the final characters.
+
 **Widget** (`widget/marquee-widget.js`) — Scriptable, iOS. The glance: next
 showings, series colour as a leading rule, dimmed titles at reduced alpha, `?`
 for unknown. Tapping opens the companion page. An Android equivalent reads the

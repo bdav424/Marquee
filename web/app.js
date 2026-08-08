@@ -283,6 +283,11 @@ function openSheet(title) {
 }
 
 function closeSheet() {
+  // Clear the deep link so closing does not leave the panel re-opening on
+  // reload or on a back-navigation from the board.
+  if (location.hash) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
   document.getElementById('sheet').hidden = true;
   document.getElementById('sheet-backdrop').hidden = true;
   document.body.style.overflow = '';
@@ -320,7 +325,20 @@ async function boot() {
   grid.replaceChildren(...snapshot.titles.map(makeCard));
   grid.removeAttribute('aria-busy');
   document.getElementById('empty').hidden = snapshot.titles.length > 0;
+
+  // The board links here as index.html#slug — a row there is a glance, and
+  // the explanation lives in this panel. Open it straight away.
+  openFromHash();
 }
+
+function openFromHash() {
+  const slug = decodeURIComponent(location.hash.slice(1));
+  if (!slug || !snapshot) return;
+  const title = snapshot.titles.find(t => t.slug === slug);
+  if (title) openSheet(title);
+}
+
+window.addEventListener('hashchange', openFromHash);
 
 document.getElementById('sheet-close').addEventListener('click', closeSheet);
 document.getElementById('sheet-backdrop').addEventListener('click', closeSheet);

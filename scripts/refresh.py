@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT))
 from dataclasses import replace  # noqa: E402
 
 from marquee import tmdb  # noqa: E402
-from marquee.adapters import alamo  # noqa: E402
+from marquee.adapters import alamo, filmratings  # noqa: E402
 from marquee.build import build_snapshot, write_snapshot  # noqa: E402
 from marquee.images import cache_image, prune  # noqa: E402
 from marquee.model import Snapshot, Title  # noqa: E402
@@ -37,6 +37,7 @@ from marquee.severity import load_config  # noqa: E402
 
 DISPLAY_JSON = ROOT / "web" / "data" / "marquee.json"
 RAW_CACHE = ROOT / "cache" / "last-good.json"
+REASON_CACHE = ROOT / "cache" / "reasons.json"
 POSTER_DIR = ROOT / "web" / "posters"
 LOG_DIR = ROOT / "logs"
 PARSE_LOG = LOG_DIR / "parse-failures.jsonl"
@@ -122,6 +123,54 @@ def enrich(titles: list[Title]) -> list[Title]:
     return enriched
 
 
+def resolve_reasons(titles: list[Title]) -> list[Title]:
+    """Fill mpa_reason from filmratings.com (CARA).
+
+    Alamo publishes a certification and no reason text, so without this every
+    title scores `unknown` and nothing ever greys. CARA is the origin of those
+    sentences and the only live source for current releases.
+
+    Cached permanently on disk — a reason never changes once assigned — so a
+    steady-state cycle makes zero requests and only genuinely new titles are
+    ever looked up. That is what keeps a 6-hour cron polite to a small public
+    lookup service.
+    """
+    cache = filmratings.ReasonCache(REASON_CACHE)
+    hits = fresh = misses = errors = 0
+    resolved = []
+
+    for title in titles:
+        if title.mpa_reason:
+            resolved.append(title)
+            continue
+
+        found = cache.get(title.name)
+        if found is None:
+            try:
+                found = filmratings.lookup(title.name)
+                cache.put(title.name, found)
+                fresh += 1
+            except filmratings.LookupFailed as exc:
+                errors += 1
+                log(f"  cara: {title.name}: {str(exc)[:80]}")
+                resolved.append(title)
+                continue
+        else:
+            hits += 1
+
+        if found.usable:
+            resolved.append(replace(title, mpa_reason=found.reason))
+        else:
+            misses += 1
+            resolved.append(title)
+
+    cache.save()
+    unknown = sum(1 for t in resolved if not t.mpa_reason)
+    log(f"reasons: {hits} cached, {fresh} looked up, {misses} not in CARA, "
+        f"{errors} errors -> {unknown}/{len(resolved)} still unknown")
+    return resolved
+
+
 def emit_stale() -> int:
     """Re-publish the last good snapshot, marked stale. Never blank the screen."""
     if not DISPLAY_JSON.exists():
@@ -154,6 +203,7 @@ def main() -> int:
         return emit_stale()
 
     titles = enrich(titles)
+    titles = resolve_reasons(titles)
 
     snapshot = Snapshot(
         theater="Alamo Drafthouse Winchester",

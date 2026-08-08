@@ -55,9 +55,40 @@ defaulted missing reasons to "no content issues" would show a wall of
 confidently unflagged titles and quietly mean nothing. Instead it shows `?`
 and says so.
 
-**The fix is a `filmratings.com` adapter** — the official CARA database, which
-publishes the exact strings the parser was written for. Not yet built. Until
-it is, the only working content signal is the TMDB Horror genre backstop.
+**The fix is `marquee/adapters/filmratings.py`** — the MPA's own CARA
+database, which publishes the exact sentences the parser was written for.
+Written and wired into the cycle, but **never executed against the live site**,
+so extraction is reviewed-not-verified. Confirm it with:
+
+```
+python3 -m marquee.adapters.filmratings discover "Some Film Title"
+```
+
+Extraction is regex-over-text rather than DOM-shaped, so it does not depend on
+markup structure and returns `None` rather than a wrong answer when it cannot
+read a page. Results are cached permanently on disk (a reason never changes
+once assigned) and misses expire after a week, so a steady-state cycle makes
+zero requests to a small public service.
+
+### Why not an open dataset?
+
+There isn't one that carries reason text for current releases:
+
+| Source | Certification | Reason text |
+|---|---|---|
+| Alamo feed | yes | no |
+| TMDB | yes | no — not modelled |
+| OMDb | yes | no |
+| Wikidata | yes | no property for it |
+| IMDb free non-commercial datasets | no | no |
+| IMDb paid bulk data (AWS Data Exchange) | yes | **yes** (`certificate.reason`) |
+| filmratings.com (CARA) | yes | **yes** — and free |
+
+IMDb's commercial feed has the field, but it is licensed per use case through
+AWS Data Exchange, which is absurd for one theater. Scraped CARA dumps on
+GitHub and Kaggle are historical snapshots and lag new releases — exactly the
+titles a marquee shows. CARA is both the authoritative source and the origin
+of every one of those strings, so it is what this queries.
 
 ## What is built: the severity parser
 

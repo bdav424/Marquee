@@ -12,8 +12,16 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 | 1 — Endpoint discovery | **Blocked.** Network egress policy denies `drafthouse.com`. See below. |
 | 2 — TMDB enrichment | **Blocked.** Same reason (`api.themoviedb.org`, `image.tmdb.org`). |
 | 3 — Content severity parser | **Built and tested.** Needs no network. |
-| 4 — Display | Not started — waiting on the real field inventory + hardware target. |
+| 3b — Series/event treatments | **Built and tested.** Seed vocabulary, needs reconciling against the real feed. |
+| 4 — Display | Not started — waiting on the field inventory and on the widget/companion split. |
 | 5 — Ops (cron, cache, logging) | Not started — shape depends on Step 1. |
+
+> **Render target changed.** The brief specified wall furniture — a kiosk display
+> legible from across a room. The target is now a **phone widget**, which inverts
+> most of the layout constraints (small, close, glanceable) and constrains the
+> drill-in panel, since home-screen widgets do not host interactive panels. The
+> content-signal rules are unaffected; the layout work in Step 4 is not yet
+> started pending that decision.
 
 ### The Step 1 blocker
 
@@ -102,6 +110,29 @@ are kept in a separate table so they are easy to audit or delete outright.
 | `language` | never flags — chip displays, carries no weight |
 | `substance` | never flags |
 
+## What is built: series/event treatments
+
+`marquee/series.py` resolves whatever series string the feed carries to a
+visual treatment — per-series colour, label, and a `one_night` flag, distinct
+from the rating chip.
+
+- **Nothing is dropped.** An unrecognised strand still badges, using the
+  default treatment and its own verbatim label, and is reported via
+  `unrecognised()` for reconciliation. Silently discarding an unknown strand
+  would hide exactly the one-night programming this display exists to surface.
+- **Matching is text-based, not schema-based.** It resolves off a normalised
+  form of the tag string, so it works without knowing the feed's field shape.
+- **Whole-word matching.** Patterns match on token boundaries, so `rep` cannot
+  match inside `prepare`. This was a live bug caught in review, now guarded by
+  a test.
+- **Priority ordering.** A showing carrying several tags gets the
+  highest-priority one as its primary badge; the rest are retained as
+  secondary.
+
+`config/series.toml` is **seed data** — Alamo's well-known strands from the
+brief plus public programming names. It has not been reconciled against the
+real Winchester feed, because discovery is blocked.
+
 ## Running the tests
 
 No dependencies. Python 3.11+ for stdlib `tomllib`.
@@ -110,22 +141,30 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-25 tests covering the intensity ladder, clause scoping, longest-match
-resolution, unknown handling, thresholds, and provenance.
+39 tests: the intensity ladder, clause scoping, longest-match resolution,
+unknown handling, thresholds and provenance for the severity parser; strand
+recognition, match precedence, whole-word guarding and unrecognised-tag
+retention for series treatments.
 
 ## Layout
 
 ```
 config/marquee.toml     tunable vocabulary, ladder, thresholds
-marquee/severity.py     parser + threshold evaluation
+config/series.toml      series/event tag treatments (seed data)
+marquee/severity.py     rating-reason parser + threshold evaluation
+marquee/series.py       series tag resolution + visual treatment
 tests/test_severity.py  regression surface — add mis-read strings here first
+tests/test_series.py    regression surface — add mis-resolved tags here first
 ```
 
 ## Open questions before Step 4
 
-- Screen size and hardware target (wall tablet? Pi + monitor? what resolution?)
-- Should the series/event tag get its own visual treatment, distinct from the
-  rating chip?
+- **Widget flavour.** A home-screen widget cannot host the clickable drill-in
+  panel the brief calls non-negotiable, so the likely shape is a glanceable
+  widget backed by a companion page that carries the full grid and the panels.
+  Which widget mechanism — Scriptable, a home-screen PWA, or a native build —
+  is unresolved.
+- **Does the wall display still exist**, or has the phone replaced it entirely?
 - Stack confirmation: Python fetcher + plain HTML/CSS/JS display, no framework.
 
 ## Non-goals

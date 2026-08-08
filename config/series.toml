@@ -1,0 +1,118 @@
+# Series / event tag treatments.
+#
+# One-night programming is half the reason this display exists, so a series
+# tag gets its own strong visual treatment — per-series colour, distinct from
+# the rating chip in both shape and weight.
+#
+# SEED DATA. These are Alamo's well-known recurring strands, seeded from the
+# brief plus public programming names. They have NOT been reconciled against
+# the real Winchester feed, because endpoint discovery is still blocked. Once
+# the feed is live, run the unmatched-series report and fix these up.
+#
+# Matching is substring-based against a normalised form of whatever string the
+# feed carries, so this survives not knowing the feed's exact field shape.
+
+[defaults]
+# Any series tag the feed carries that matches nothing below still gets a
+# badge — an unrecognised strand is not the same as no strand, and silently
+# dropping it would hide exactly the programming this display exists to show.
+background = "#4A4A52"
+foreground = "#F5F5F0"
+label = "SERIES"
+one_night = false
+priority = 0
+
+
+# --- Recurring strands ------------------------------------------------------
+# priority breaks ties when a showing carries more than one tag; highest wins
+# for the primary badge, the rest render as secondary pips.
+
+[[series]]
+key = "terror_tuesday"
+match = ["terror tuesday"]
+label = "TERROR TUESDAY"
+background = "#8B0000"
+foreground = "#FFF0F0"
+one_night = true
+priority = 90
+
+[[series]]
+key = "weird_wednesday"
+match = ["weird wednesday"]
+label = "WEIRD WEDNESDAY"
+background = "#5B2C8D"
+foreground = "#EFE0FF"
+one_night = true
+priority = 90
+
+[[series]]
+key = "video_vortex"
+match = ["video vortex"]
+label = "VIDEO VORTEX"
+background = "#00857A"
+foreground = "#E0FFFB"
+one_night = true
+priority = 85
+
+[[series]]
+key = "movie_party"
+match = ["movie party", "party"]
+label = "MOVIE PARTY"
+background = "#C2185B"
+foreground = "#FFF0F6"
+one_night = false
+priority = 80
+
+[[series]]
+key = "adults_only"
+match = ["21+", "adults only", "adult only"]
+label = "21+"
+background = "#B26A00"
+foreground = "#FFF6E5"
+one_night = false
+priority = 75
+
+[[series]]
+key = "repertory"
+match = ["repertory", "classic", "anniversary", "re-release", "rerelease"]
+label = "REPERTORY"
+background = "#8A6D1F"
+foreground = "#FFF9E6"
+one_night = false
+priority = 70
+
+[[series]]
+key = "only_at_alamo"
+match = ["only at the alamo", "only at alamo"]
+label = "ONLY AT THE ALAMO"
+background = "#1F5F8A"
+foreground = "#E6F4FF"
+one_night = true
+priority = 65
+
+[[series]]
+key = "champagne_cinema"
+match = ["champagne cinema"]
+label = "CHAMPAGNE CINEMA"
+background = "#7A5C00"
+foreground = "#FFFBE6"
+one_night = false
+priority = 60
+
+[[series]]
+key = "kids_camp"
+match = ["kids camp", "kids' camp", "family"]
+label = "KIDS CAMP"
+background = "#2E7D32"
+foreground = "#EAFBEA"
+one_night = false
+priority = 55
+
+[[series]]
+key = "time_capsule"
+match = ["time capsule"]
+label = "TIME CAPSULE"
+background = "#455A64"
+foreground = "#ECEFF1"
+one_night = true
+priority = 55

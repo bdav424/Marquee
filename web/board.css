@@ -25,6 +25,11 @@
   --cell-h: 42px;
   --cell-w: 26px;
   --cell-gap: 1px;
+  /* Flap height as a multiple of width. 1 is square, 2 is a tall card.
+     Read by layout() in board.js, so this is the single lever. */
+  --cell-aspect: 2;
+  /* Vertical space between rows, as a fraction of flap height. */
+  --row-gap: 0.125;
 }
 
 * { box-sizing: border-box; }
@@ -179,7 +184,7 @@ body::before {
 #rows {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--cell-h) * 0.25);
+  gap: calc(var(--cell-h) * var(--row-gap));
 }
 
 .row {
@@ -196,7 +201,7 @@ body::before {
 .row::after {
   content: "";
   position: absolute;
-  inset: calc(var(--cell-h) * -0.125) 0;
+  inset: calc(var(--cell-h) * var(--row-gap) * -0.5) 0;
 }
 
 /* The series colour is a painted strip on the board's edge, not a flap. */
@@ -333,9 +338,10 @@ body::before {
   height: 200%;
   line-height: var(--cell-h);
   text-align: center;
-  /* A square box is shorter than the old 1.5 ratio, so the glyph takes more
-     of it to hold its size. */
-  font-size: calc(var(--cell-h) * 0.70);
+  /* Sized off the WIDTH, not the height. On a tall card the width is the
+     binding constraint — a monospace advance is roughly 0.6em, so 1.42em
+     nearly fills the flap without touching its neighbours. */
+  font-size: calc(var(--cell-w) * 1.42);
   font-weight: 700;
   color: var(--flap-ink);
   text-shadow:
@@ -351,12 +357,18 @@ body::before {
 .meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  gap: 1px;
   flex: none;
   width: 40px;
-  font-size: 8.5px;
-  line-height: 1.25;
-  letter-spacing: 0.06em;
+  /* Height and type both follow the flap. Left to itself this column was
+     23px of stacked text and it, not the cards, decided the row height —
+     so changing the flap aspect moved the cards inside a fixed-height row
+     and the board looked identical at every ratio. */
+  height: var(--cell-h);
+  font-size: calc(var(--cell-h) * 0.34);
+  line-height: 1.2;
+  letter-spacing: 0.05em;
   color: var(--ink-soft);
   overflow: hidden;
 }

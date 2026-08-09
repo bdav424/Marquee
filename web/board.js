@@ -251,9 +251,9 @@ const TIME_CELLS = 6;
 const CELL_GAP = parseFloat(
   getComputedStyle(document.documentElement).getPropertyValue('--cell-gap')
 ) || 2;
-// Raised for square cells: at 12px square the glyph fell to about 7px and
-// stopped being readable. This costs title characters and is the trade.
-const MIN_CELL_W = 14;
+// A tall card gets its legibility from height, so the width floor can come
+// back down and the titles get their characters back.
+const MIN_CELL_W = 12;
 const META_W = 40;
 
 /* Cell size is measured, not guessed. A fixed cell width overflowed the row
@@ -271,12 +271,15 @@ function layout() {
 
   while (width() < MIN_CELL_W && titleCells > 7) titleCells--;
 
-  // Square cells. The card sweeping through the fold reads square, so a 1.5
-  // tall box looked wrong at rest against its own animation.
   const cellW = Math.max(width(), MIN_CELL_W);
+  // Read each time rather than cached at load, so the aspect can be changed
+  // at runtime and the board relaid without a reload.
+  const aspect = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--cell-aspect')
+  ) || 2;
   const root = document.documentElement.style;
   root.setProperty('--cell-w', `${cellW}px`);
-  root.setProperty('--cell-h', `${cellW}px`);
+  root.setProperty('--cell-h', `${Math.round(cellW * aspect)}px`);
   return titleCells;
 }
 

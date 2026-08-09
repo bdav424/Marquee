@@ -262,10 +262,26 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-148 tests: the intensity ladder, clause scoping, longest-match resolution,
+164 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
-retention for series treatments.
+retention for series treatments; the payload contract, chronological ordering
+across a DST change and atomic writing for the snapshot builder; field mapping,
+offset derivation and decoration stripping for the Alamo adapter.
+
+## Serving the page
+
+`web/data/marquee.json` is generated, not committed — a fresh clone has no
+snapshot until you make one:
+
+```
+python3 scripts/refresh.py          # real schedule, needs network
+python3 scripts/build_sample.py     # invented fixtures, works offline
+cd web && python3 -m http.server 8080
+```
+
+Then `http://<box>:8080/board.html` for the split-flap sign, `index.html` for
+the poster grid.
 
 ## Layout
 

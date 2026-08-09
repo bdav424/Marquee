@@ -5,3 +5,4 @@ logs/
 .env
 web/posters/*
 !web/posters/.gitkeep
+web/data/marquee.json

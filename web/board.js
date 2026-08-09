@@ -130,7 +130,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 /* ---------- a run of cells ---------- */
 
 class Split {
-  constructor(length, extraClass) {
+  constructor(length, extraClass, align = 'left') {
+    this.align = align;
     this.el = document.createElement('div');
     this.el.className = 'split' + (extraClass ? ' ' + extraClass : '');
     this.cells = Array.from({ length }, () => new Cell());
@@ -138,9 +139,19 @@ class Split {
   }
 
   set(text, rowIndex = 0) {
-    const padded = (text || '').toUpperCase()
-      .slice(0, this.cells.length)
-      .padEnd(this.cells.length, ' ');
+    const width = this.cells.length;
+    let body = (text || '').toUpperCase().slice(0, width);
+
+    // A short title left-aligned in a long flap run left a tail of blank
+    // cards, which is not how a board reads. Titles are centred over their
+    // run; times are right-aligned so the digits line up column to column.
+    if (this.align === 'center') {
+      body = ' '.repeat(Math.floor((width - body.length) / 2)) + body;
+    } else if (this.align === 'right') {
+      body = body.padStart(width, ' ');
+    }
+
+    const padded = body.padEnd(width, ' ');
     this.cells.forEach((cell, i) => {
       cell.roll(padded[i], rowIndex * ROW_STAGGER + i * COL_STAGGER);
     });
@@ -194,20 +205,57 @@ function rows(data) {
 
 /* ---------- border lamps ---------- */
 
-const BULB_PERIOD_MS = 1400;
-// Spacing is per-lamp, but only every other lamp is lit at a time, so the
-// visible spacing is double this. At 17 the lit bulbs sat 34px apart and the
-// dark ones read as empty bezel rather than as unlit lamps.
+/* A mechanical marquee chaser, modelled on the real thing.
+ *
+ * The original was a motor turning a drum with contacts that struck each
+ * circuit in turn. Bulbs are not wired individually — they are split into a
+ * few CHANNELS, and bulb n belongs to channel n % channels, so every third
+ * lamp shares a wire. The drum energises the channels in rotation and the lit
+ * set appears to travel.
+ *
+ * Channel count is the whole trick. Two channels cannot show direction: with
+ * every other lamp lit, bulb n and bulb n+2 are identical and the eye has no
+ * way to tell which way the pattern is moving, so it reads as flashing rather
+ * than rotating. Three is the documented minimum for a stable sense of
+ * motion, which is why the previous alternation never looked circular.
+ */
+const BULB_CHANNELS = 3;      // circuits on the drum
+const BULB_ON_CHANNELS = 2;   // how many are energised at once
+const BULB_PERIOD_MS = 1100;  // one full revolution of the drum
 const BULB_SPACING = 11;
 const BULB_INSET = 11;
 
-/* Lay bulbs at fixed points around the sign's perimeter and light them in a
-   travelling pattern.
+/* Keyframes are generated so the lit fraction always matches the channel
+   wiring above rather than being restated as a percentage by hand. */
+function installChaseKeyframes() {
+  const duty = (BULB_ON_CHANNELS / BULB_CHANNELS) * 100;
+  const style = document.getElementById('chase-keyframes')
+    || Object.assign(document.createElement('style'), { id: 'chase-keyframes' });
+  style.textContent = `@keyframes commutator {
+    0%, ${duty.toFixed(3)}% {
+      opacity: 1;
+      box-shadow: 0 0 5px 1px rgba(255, 201, 110, 0.85);
+    }
+    ${(duty + 0.001).toFixed(3)}%, 100% {
+      opacity: 0.34;
+      box-shadow: none;
+    }
+  }`;
+  if (!style.isConnected) document.head.appendChild(style);
+}
 
-   Neighbouring bulbs sit half a period apart, so at any instant every other
-   one is lit. Adding a further period/n to the step makes that alternating
-   pattern advance by one bulb per cycle — the alternation itself rotates
-   around the board, which is the marquee chase. The bulbs never move. */
+/* A point at arc-length `d` around the sign's perimeter, clockwise from the
+   top-left corner. */
+function perimeterPoint(d, w, h) {
+  if (d < w) return [BULB_INSET + d, BULB_INSET];
+  d -= w;
+  if (d < h) return [BULB_INSET + w, BULB_INSET + d];
+  d -= h;
+  if (d < w) return [BULB_INSET + w - d, BULB_INSET + h];
+  d -= w;
+  return [BULB_INSET, BULB_INSET + h - d];
+}
+
 function buildBulbs() {
   const sign = document.querySelector('.sign');
   const holder = document.getElementById('bulbs');
@@ -218,28 +266,34 @@ function buildBulbs() {
   const h = rect.height - BULB_INSET * 2;
   if (w <= 0 || h <= 0) return;
 
-  const cols = Math.max(2, Math.round(w / BULB_SPACING));
-  const rowCount = Math.max(2, Math.round(h / BULB_SPACING));
+  installChaseKeyframes();
 
-  // Walked as one continuous loop, so the delay index runs unbroken around
-  // the corners and the pattern does not restart on each edge.
-  const points = [];
-  for (let i = 0; i < cols; i++) points.push([BULB_INSET + (w * i) / cols, BULB_INSET]);
-  for (let i = 0; i < rowCount; i++) points.push([BULB_INSET + w, BULB_INSET + (h * i) / rowCount]);
-  for (let i = cols; i > 0; i--) points.push([BULB_INSET + (w * i) / cols, BULB_INSET + h]);
-  for (let i = rowCount; i > 0; i--) points.push([BULB_INSET, BULB_INSET + (h * i) / rowCount]);
+  // Lamps are placed by arc length rather than per edge, so spacing is
+  // identical the whole way round instead of differing between the long and
+  // short sides. The count is forced to a multiple of the channel count so
+  // the wiring pattern meets itself cleanly where the loop closes.
+  const perimeter = 2 * (w + h);
+  const count =
+    Math.max(BULB_CHANNELS,
+      Math.round(perimeter / BULB_SPACING / BULB_CHANNELS) * BULB_CHANNELS);
+  const step = perimeter / count;
 
-  const step = BULB_PERIOD_MS / 2 + BULB_PERIOD_MS / points.length;
-
-  holder.replaceChildren(...points.map(([x, y], i) => {
+  holder.replaceChildren(...Array.from({ length: count }, (_, i) => {
+    const [x, y] = perimeterPoint(i * step, w, h);
     const bulb = document.createElement('div');
     bulb.className = 'bulb';
     bulb.style.left = `${x.toFixed(1)}px`;
     bulb.style.top = `${y.toFixed(1)}px`;
     if (!reduceMotion) {
+      const channel = i % BULB_CHANNELS;
       bulb.style.animationDuration = `${BULB_PERIOD_MS}ms`;
-      // Negative delay starts each bulb part-way through its own cycle.
-      bulb.style.animationDelay = `${-((i * step) % BULB_PERIOD_MS).toFixed(1)}ms`;
+      // Each channel fires a third of a revolution after the one before it.
+      // The channel index is reversed so the pattern travels the same way the
+      // lamps are numbered — clockwise from the top-left. Using the channel
+      // directly ran the chase backwards around the sign.
+      const lag = (BULB_CHANNELS - channel) % BULB_CHANNELS;
+      bulb.style.animationDelay =
+        `${-(lag * BULB_PERIOD_MS) / BULB_CHANNELS}ms`;
     }
     return bulb;
   }));
@@ -294,10 +348,10 @@ function buildRow(entry) {
   strip.className = 'strip';
   row.appendChild(strip);
 
-  const name = new Split(titleCells);
+  const name = new Split(titleCells, null, 'center');
   row.appendChild(name.el);
 
-  const time = new Split(6, 'times');
+  const time = new Split(TIME_CELLS, 'times', 'right');
   row.appendChild(time.el);
 
   const meta = document.createElement('div');

@@ -3,10 +3,11 @@ package com.winchester.marquee
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.view.View
+import android.os.Bundle
 import android.widget.RemoteViews
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -26,11 +27,14 @@ import kotlin.concurrent.thread
  * widget cannot disagree with the grid or the board about whether a title is
  * dimmed.
  *
- * Replaces the Scriptable script in widget/, which is iOS-only.
+ * The sign itself is drawn by SignRenderer into a bitmap. RemoteViews cannot
+ * host a custom view, so a widget assembled from TextViews can only be a list
+ * of strings — which is what this was, and why it looked nothing like the
+ * board it is supposed to be a glance at.
  *
- * Built by .github/workflows/android.yml on every push to android/, which is
- * also how to get an installable APK without an Android Studio anywhere near
- * it. See android/README.md.
+ * Replaces the Scriptable script in widget/, which is iOS-only. Built by
+ * .github/workflows/android.yml on every push to android/, which is also how
+ * to get an installable APK without Android Studio. See android/README.md.
  */
 class MarqueeWidget : AppWidgetProvider() {
 
@@ -39,11 +43,9 @@ class MarqueeWidget : AppWidgetProvider() {
          * Where web/ is being served from.
          *
          * Defaults to the phone itself, which is the common setup: Termux
-         * runs the fetcher and a loopback HTTP server, so the widget, the
-         * page and the box are all one device and nothing touches the
-         * network. Point it at a hostname instead if you run the fetcher on
-         * a Pi — and add that hostname to network_security_config.xml, or
-         * Android will refuse the cleartext request.
+         * runs the fetcher and a loopback HTTP server, so the widget, the page
+         * and the box are all one device and nothing touches the network.
+         * Point it at a hostname instead if the fetcher lives on a Pi.
          */
         const val BASE_URL = "http://127.0.0.1:8080"
 
@@ -53,23 +55,12 @@ class MarqueeWidget : AppWidgetProvider() {
         private const val KEY_LAST_GOOD = "last_good_json"
         private const val ACTION_REFRESH = "com.winchester.marquee.REFRESH"
 
-        /** Row slots declared in widget_marquee.xml. */
-        private val ROW_IDS = intArrayOf(
-            R.id.row0, R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5
-        )
-        private val TITLE_IDS = intArrayOf(
-            R.id.title0, R.id.title1, R.id.title2,
-            R.id.title3, R.id.title4, R.id.title5
-        )
-        private val TIME_IDS = intArrayOf(
-            R.id.time0, R.id.time1, R.id.time2,
-            R.id.time3, R.id.time4, R.id.time5
-        )
-        /** The unknown-rating marker, in its own view per row. */
-        private val MARK_IDS = intArrayOf(
-            R.id.mark0, R.id.mark1, R.id.mark2,
-            R.id.mark3, R.id.mark4, R.id.mark5
-        )
+        /** Used when the host does not report a size. */
+        private const val FALLBACK_W_DP = 250
+        private const val FALLBACK_H_DP = 110
+
+        /** More rows than this and the flaps stop being legible. */
+        private const val MAX_ROWS = 8
     }
 
     override fun onUpdate(
@@ -80,14 +71,25 @@ class MarqueeWidget : AppWidgetProvider() {
         refresh(context, manager, widgetIds)
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        widgetId: Int,
+        newOptions: Bundle
+    ) {
+        // Resizing changes how many rows fit and how long a title can be, and
+        // the bitmap is drawn at a fixed size, so it has to be redrawn.
+        refresh(context, manager, intArrayOf(widgetId))
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action == ACTION_REFRESH) {
             val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(
-                android.content.ComponentName(context, MarqueeWidget::class.java)
+            refresh(
+                context, manager,
+                manager.getAppWidgetIds(ComponentName(context, MarqueeWidget::class.java))
             )
-            refresh(context, manager, ids)
         }
     }
 
@@ -114,8 +116,12 @@ class MarqueeWidget : AppWidgetProvider() {
                 prefs.edit().putString(KEY_LAST_GOOD, body).apply()
             }
 
-            val views = render(context, body, stale, result.problem)
-            for (id in widgetIds) manager.updateAppWidget(id, views)
+            // Each widget can be a different size, so each gets its own draw.
+            for (id in widgetIds) {
+                manager.updateAppWidget(
+                    id, render(context, manager, id, body, stale, result.problem)
+                )
+            }
         }
     }
 
@@ -136,112 +142,103 @@ class MarqueeWidget : AppWidgetProvider() {
     } catch (e: java.net.ConnectException) {
         // Overwhelmingly the common case: nothing is listening, because the
         // Termux server is not running. Saying so beats "cannot reach".
-        Fetched(null, "Nothing is listening on $BASE_URL — is the server running?")
+        Fetched(null, "Nothing is listening on $BASE_URL. Is the server running?")
     } catch (e: java.net.SocketTimeoutException) {
         Fetched(null, "$BASE_URL timed out.")
     } catch (e: java.io.IOException) {
-        // Cleartext blocked by the network security config lands here, and it
-        // is invisible otherwise — the host has to be listed in
-        // network_security_config.xml or Android refuses plain HTTP outright.
-        Fetched(null, "Cannot read $BASE_URL: ${e.javaClass.simpleName}. " +
-            "If you changed the host, add it to network_security_config.xml.")
+        Fetched(null, "Cannot read $BASE_URL: ${e.javaClass.simpleName}.")
     } catch (e: Exception) {
         Fetched(null, "${e.javaClass.simpleName}: ${e.message ?: "no detail"}")
     }
 
     private fun render(
         context: Context,
+        manager: AppWidgetManager,
+        widgetId: Int,
         body: String?,
         stale: Boolean,
         problem: String?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_marquee)
 
-        // Tapping opens the board, which is where a verdict can explain
-        // itself. A widget has no room for the reason text.
-        val open = PendingIntent.getActivity(
-            context, 0,
-            Intent(Intent.ACTION_VIEW, Uri.parse(BASE_URL + PAGE_PATH)),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        // Tapping the sign opens the board, which is where a verdict can
+        // explain itself. A widget has no room for the reason text.
+        views.setOnClickPendingIntent(
+            R.id.widget_root,
+            PendingIntent.getActivity(
+                context, 0,
+                Intent(Intent.ACTION_VIEW, Uri.parse(BASE_URL + PAGE_PATH)),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
         )
-        views.setOnClickPendingIntent(R.id.widget_root, open)
-
-        // Tapping the timestamp retries now. Without this the widget is stuck
-        // with whatever it last saw until the 30-minute update period comes
-        // round, which is a long time to stare at NO SIGNAL after starting
-        // the server.
-        val retry = PendingIntent.getBroadcast(
-            context, 1,
-            Intent(context, MarqueeWidget::class.java).setAction(ACTION_REFRESH),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        // The corner retries now. Without it a transient failure sits there
+        // until the 30-minute update period comes round, which is a long time
+        // to stare at NO SIGNAL after starting the server.
+        views.setOnClickPendingIntent(
+            R.id.retry,
+            PendingIntent.getBroadcast(
+                context, 1,
+                Intent(context, MarqueeWidget::class.java).setAction(ACTION_REFRESH),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
         )
-        views.setOnClickPendingIntent(R.id.stamp, retry)
 
-        for (id in ROW_IDS) views.setViewVisibility(id, View.GONE)
-        for (id in MARK_IDS) views.setViewVisibility(id, View.GONE)
+        val metrics = context.resources.displayMetrics
+        val options = manager.getAppWidgetOptions(widgetId)
+        val wDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            .takeIf { it > 0 } ?: FALLBACK_W_DP
+        val hDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+            .takeIf { it > 0 } ?: FALLBACK_H_DP
+        val wPx = (wDp * metrics.density).toInt()
+        val hPx = (hDp * metrics.density).toInt()
 
         if (body == null) {
-            views.setTextViewText(R.id.stamp, "NO SIGNAL")
-            views.setViewVisibility(R.id.empty, View.VISIBLE)
-            // Never just "cannot reach": with no cache to fall back on this
-            // text is the only thing to debug from, and the widget cannot
-            // show a stack trace.
-            views.setTextViewText(
-                R.id.empty,
-                (problem ?: "No cached snapshot yet.") + "\n\nTap the top right to retry.")
+            views.setImageViewBitmap(
+                R.id.sign,
+                SignRenderer.render(
+                    wPx, hPx, metrics.density, "WINCHESTER", "NO SIGNAL", true,
+                    emptyList(), (problem ?: "No cached snapshot yet.") +
+                        " Tap the top right to retry."
+                )
+            )
             return views
         }
 
-        val rows: List<Row>
         val snapshot: JSONObject
+        val rows: List<Row>
         try {
             snapshot = JSONObject(body)
             rows = upcoming(snapshot)
         } catch (e: Exception) {
-            views.setTextViewText(R.id.stamp, "BAD DATA")
-            views.setViewVisibility(R.id.empty, View.VISIBLE)
-            views.setTextViewText(R.id.empty, "Snapshot could not be read.")
+            views.setImageViewBitmap(
+                R.id.sign,
+                SignRenderer.render(
+                    wPx, hPx, metrics.density, "WINCHESTER", "BAD DATA", true,
+                    emptyList(), "The snapshot could not be read."
+                )
+            )
             return views
         }
 
-        val fetchedAt = snapshot.optString("fetched_at", "")
-        val age = relativeAge(fetchedAt)
         val isStale = stale || snapshot.optBoolean("stale", false)
-        views.setTextViewText(R.id.stamp, if (isStale) "STALE $age" else "UPDATED $age")
-        views.setTextColor(
-            R.id.stamp,
-            context.getColor(if (isStale) R.color.alert else R.color.ink_soft)
+        val age = relativeAge(snapshot.optString("fetched_at", ""))
+        val stamp = if (isStale) "STALE $age" else "UPDATED $age"
+
+        // The masthead follows the market, so a widget pointed at another
+        // city does not keep claiming to be Winchester.
+        val masthead = snapshot.optJSONObject("market")?.optString("name")
+            ?.substringBefore(",")?.uppercase(Locale.US) ?: "WINCHESTER"
+
+        views.setImageViewBitmap(
+            R.id.sign,
+            SignRenderer.render(
+                wPx, hPx, metrics.density, masthead, stamp, isStale,
+                rows.take(MAX_ROWS).map {
+                    SignRenderer.Row(it.name, it.time, it.day, it.flagged, it.unknown)
+                },
+                if (rows.isEmpty()) "Nothing left on the board." else null
+            )
         )
-
-        if (rows.isEmpty()) {
-            views.setViewVisibility(R.id.empty, View.VISIBLE)
-            views.setTextViewText(R.id.empty, "Nothing left on the board.")
-            return views
-        }
-        views.setViewVisibility(R.id.empty, View.GONE)
-
-        val ink = context.getColor(R.color.flap_ink)
-        val inkDim = context.getColor(R.color.flap_ink_dim)
-
-        for ((slot, row) in rows.take(ROW_IDS.size).withIndex()) {
-            views.setViewVisibility(ROW_IDS[slot], View.VISIBLE)
-            views.setTextViewText(TITLE_IDS[slot], row.name.uppercase(Locale.US))
-            views.setTextViewText(TIME_IDS[slot], "${row.day} ${row.time}")
-
-            // ? means the rating reason could not be read: unknown, not clean.
-            // It lives in its own view because appended to the title it shared
-            // the title's ellipsize — a long name truncated the marker away
-            // and the row then read as though the rating were known, which is
-            // the one thing this state exists to prevent.
-            views.setViewVisibility(
-                MARK_IDS[slot], if (row.unknown) View.VISIBLE else View.GONE)
-            views.setTextViewText(MARK_IDS[slot], "?")
-
-            // Dimming fades the letters, it does not darken the sign.
-            val colour = if (row.flagged) inkDim else ink
-            views.setTextColor(TITLE_IDS[slot], colour)
-            views.setTextColor(TIME_IDS[slot], colour)
-        }
         return views
     }
 

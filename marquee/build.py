@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from marquee.model import Snapshot, Title
@@ -79,10 +79,32 @@ def build_title(
     }
 
 
+# Sorted after everything that has a showtime.
+_NO_SHOWINGS = datetime.max.replace(tzinfo=timezone.utc)
+
+
+def _first_showtime(title: Title) -> datetime:
+    """The instant of a title's earliest showing, for ordering.
+
+    Naive datetimes are read as UTC rather than allowed to raise: the model
+    says showtimes are aware, and a crash in the builder would take the whole
+    display down over a detail that only affects sort order.
+    """
+    times = [
+        s.showtime if s.showtime.tzinfo else s.showtime.replace(tzinfo=timezone.utc)
+        for s in title.showings
+    ]
+    return min(times, default=_NO_SHOWINGS)
+
+
 def build_snapshot(
     snapshot: Snapshot, severity_config: Config, series_config: SeriesConfig
 ) -> dict:
-    titles = [build_title(t, severity_config, series_config) for t in snapshot.titles]
+    # The source Title is kept alongside its payload so ordering can use real
+    # datetimes rather than their serialised form.
+    built = [
+        (t, build_title(t, severity_config, series_config)) for t in snapshot.titles
+    ]
 
     # Step 5's parse-failure logging: what the vocabulary missed this cycle.
     unmatched_fragments: Counter = Counter()
@@ -101,12 +123,17 @@ def build_snapshot(
 
     # Sort: one-night programming first — it is the perishable half of the
     # schedule — then by earliest showtime.
-    def sort_key(entry: dict):
+    #
+    # Ordered on the instant, not on the ISO text. Winchester's clocks change
+    # in November, so two showings on the same date can carry different UTC
+    # offsets, and comparing the strings then puts the later one first.
+    def sort_key(pair):
+        source, entry = pair
         one_night = bool(entry["series"] and entry["series"]["one_night"])
-        first = entry["showings"][0]["showtime"] if entry["showings"] else "9999"
-        return (0 if one_night else 1, first)
+        return (0 if one_night else 1, _first_showtime(source))
 
-    titles.sort(key=sort_key)
+    built.sort(key=sort_key)
+    titles = [entry for _, entry in built]
 
     return {
         "theater": snapshot.theater,

@@ -292,6 +292,95 @@ class ReasonCache:
         tmp.replace(self.path)
 
 
+def _post(url: str, fields: dict, timeout: int = 25) -> str:
+    data = urllib.parse.urlencode(fields).encode()
+    request = urllib.request.Request(
+        url, data=data,
+        headers=dict(BROWSER_HEADERS,
+                     **{"Content-Type": "application/x-www-form-urlencoded"}),
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, OSError) as exc:
+        raise LookupFailed(f"POST {url}: {exc}") from exc
+
+
+# Field names lifted off the live page by inspect(). filmTitle was never one
+# of them — it was invented, which is why every query returned the same page.
+CANDIDATE_PARAMS = [
+    "searchForAMovie", "filmTitle", "title", "movieTitle",
+    "query", "q", "search", "txtTitle",
+]
+
+
+def probe(title: str) -> None:
+    """Find how the search actually takes a query.
+
+    Compares each candidate parameter against a baseline request with no
+    query at all. A parameter the server honours changes the response; one it
+    ignores returns the same bytes. Then scans the page's own JavaScript for
+    the endpoint it calls, which is how the Alamo feed was found.
+    """
+    wanted = strip_decoration(title)
+    encoded = urllib.parse.quote(wanted)
+    base = "https://www.filmratings.com/Search"
+
+    baseline = fetch(base)
+    print(f"# query    : {wanted!r}")
+    print(f"# baseline : {len(baseline)} bytes with no query at all\n")
+
+    print("## GET parameters\n")
+    for name in CANDIDATE_PARAMS:
+        try:
+            body = fetch(f"{base}?{name}={encoded}")
+        except LookupFailed as exc:
+            print(f"  {name:18} ERR {str(exc)[:60]}")
+            continue
+        delta = len(body) - len(baseline)
+        echoed = wanted.lower() in body.lower()
+        verdict = "IGNORED" if delta == 0 and not echoed else "CHANGES RESPONSE"
+        print(f"  {name:18} {len(body):>7}  delta {delta:>+7}  "
+              f"echoed {str(echoed):5}  {verdict}")
+        time.sleep(REQUEST_DELAY)
+
+    print("\n## POST searchForAMovie\n")
+    try:
+        body = _post(base, {"searchForAMovie": wanted})
+        delta = len(body) - len(baseline)
+        print(f"  {len(body):>7}  delta {delta:>+7}  "
+              f"echoed {wanted.lower() in body.lower()}")
+        cert, reason = extract_reason_for(body, wanted)
+        print(f"  verified extraction: {cert} / {reason!r}")
+    except LookupFailed as exc:
+        print(f"  ERR {str(exc)[:80]}")
+
+    print("\n## endpoints in the page's own JavaScript\n")
+    scripts = [
+        src if src.startswith("http") else "https://www.filmratings.com" + src
+        for src in re.findall(r"<script[^>]+src=[\"']([^\"']+)[\"']", baseline)
+    ]
+    found = set()
+    for src in scripts[:8]:
+        try:
+            js = fetch(src)
+        except LookupFailed:
+            continue
+        print(f"  scanned {src.split('/')[-1][:48]} ({len(js)} bytes)")
+        found.update(
+            re.findall(r"[\"'](/[A-Za-z0-9/_.\-]{3,70})[\"']", js)
+        )
+        time.sleep(REQUEST_DELAY)
+
+    interesting = sorted(
+        path for path in found
+        if any(k in path.lower() for k in ("search", "api", "rating", "film", "title"))
+    )
+    print(f"\n  {len(interesting)} candidate paths:")
+    for path in interesting[:40]:
+        print("    " + path)
+
+
 def inspect(title: str) -> None:
     """Report how the search page actually accepts a query.
 
@@ -381,5 +470,7 @@ if __name__ == "__main__":
         discover(" ".join(sys.argv[2:]))
     elif len(sys.argv) > 2 and sys.argv[1] == "inspect":
         inspect(" ".join(sys.argv[2:]))
+    elif len(sys.argv) > 2 and sys.argv[1] == "probe":
+        probe(" ".join(sys.argv[2:]))
     else:
         print(__doc__)

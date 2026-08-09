@@ -195,7 +195,10 @@ function rows(data) {
 /* ---------- border lamps ---------- */
 
 const BULB_PERIOD_MS = 1400;
-const BULB_SPACING = 17;
+// Spacing is per-lamp, but only every other lamp is lit at a time, so the
+// visible spacing is double this. At 17 the lit bulbs sat 34px apart and the
+// dark ones read as empty bezel rather than as unlit lamps.
+const BULB_SPACING = 11;
 const BULB_INSET = 11;
 
 /* Lay bulbs at fixed points around the sign's perimeter and light them in a

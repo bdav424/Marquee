@@ -111,7 +111,9 @@ body::before {
     box-shadow: 0 0 5px 1px rgba(255, 201, 110, 0.85);
   }
   50%, 100% {
-    opacity: 0.2;
+    /* Dark, but still visibly a lamp. At 0.2 the unlit half disappeared into
+       the bezel and the gaps looked like missing bulbs. */
+    opacity: 0.34;
     box-shadow: none;
   }
 }

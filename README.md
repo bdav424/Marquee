@@ -13,10 +13,10 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 | 2 — TMDB enrichment | **Wired, never executed.** Runtime, genres, synopsis. |
 | 3 — Content severity parser | **Built and tested.** Has no input yet — see below. |
 | 3b — Series/event treatments | **Built and tested.** Reconciling against the real feed. |
-| 4 — Display | **Built and verified in Chromium.** Companion page + widget. |
+| 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-The pipeline runs end to end against real Winchester data. 64 tests.
+The pipeline runs end to end against real Winchester data. 123 tests.
 
 ### The feed
 
@@ -258,7 +258,7 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-64 tests: the intensity ladder, clause scoping, longest-match resolution,
+123 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
 retention for series treatments.

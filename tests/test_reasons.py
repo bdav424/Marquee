@@ -10,9 +10,12 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from marquee.reasons import load, lookup, normalise, stub_for
+from marquee.reasons import (
+    is_exempt, load, load_exempt, lookup, normalise, stub_for,
+)
 
 SHIPPED = load()
+SHIPPED_EXEMPT = load_exempt()
 
 
 class TestMatching(unittest.TestCase):
@@ -87,6 +90,51 @@ class TestFailsSoft(unittest.TestCase):
     def test_a_file_with_no_reasons_table_is_empty(self):
         self.path.write_text('[something_else]\nkey = "value"\n')
         self.assertEqual(load(self.path), {})
+
+
+class TestNoDescriptor(unittest.TestCase):
+    """Films that predate rating descriptors are not outstanding work."""
+
+    def setUp(self):
+        self.dir = TemporaryDirectory()
+        self.path = Path(self.dir.name) / "reasons.toml"
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def test_listed_titles_are_exempt(self):
+        self.path.write_text('no_descriptor = ["Taxi Driver"]\n[reasons]\n')
+        exempt = load_exempt(self.path)
+        self.assertTrue(is_exempt("Taxi Driver", exempt))
+        self.assertTrue(is_exempt("taxi driver", exempt))
+
+    def test_unlisted_titles_are_not(self):
+        self.path.write_text('no_descriptor = ["Taxi Driver"]\n[reasons]\n')
+        self.assertFalse(is_exempt("Toy Story 5", load_exempt(self.path)))
+
+    def test_the_key_must_sit_above_the_reasons_table(self):
+        # Regression. Written below [reasons] it silently becomes
+        # reasons.no_descriptor and the exemption list reads as empty.
+        below = 'no_descriptor = ["Taxi Driver"]\n[reasons]\n"X" = "Rated R for y."\n'
+        self.path.write_text(below)
+        self.assertEqual(len(load_exempt(self.path)), 1)
+
+        self.path.write_text('[reasons]\n"X" = "Rated R for y."\nno_descriptor = ["Taxi Driver"]\n')
+        self.assertEqual(load_exempt(self.path), set(),
+                         "scoped into [reasons], so correctly not found")
+
+    def test_a_list_under_reasons_is_not_mistaken_for_a_reason(self):
+        self.path.write_text('[reasons]\nno_descriptor = ["Taxi Driver"]\n')
+        self.assertEqual(load(self.path), {})
+
+    def test_missing_file_exempts_nothing(self):
+        self.assertEqual(load_exempt(self.path), set())
+
+    def test_the_shipped_file_actually_exempts_its_entries(self):
+        # The shipped file had this key below [reasons] and silently exempted
+        # nothing; this fails if that regresses.
+        self.assertGreater(len(SHIPPED_EXEMPT), 0)
+        self.assertTrue(is_exempt("Taxi Driver", SHIPPED_EXEMPT))
 
 
 class TestStub(unittest.TestCase):

@@ -66,6 +66,35 @@ def load(path: Path | str = DEFAULT_PATH) -> dict[str, str]:
     return out
 
 
+def load_exempt(path: Path | str = DEFAULT_PATH) -> set[str]:
+    """Titles CARA never gave a descriptor, so none is coming.
+
+    Rating descriptors only began in 1990. Taxi Driver, Phantom of the
+    Paradise and Mothra vs. Godzilla carry a certification and nothing else,
+    and no amount of looking will produce a sentence for them. Listing one
+    here keeps it `unknown` — which is the truth, we do not know what is in it
+    — while dropping it out of the needs-reason report so the report stays a
+    list of work that can actually be done.
+    """
+    path = Path(path)
+    if not path.exists():
+        return set()
+    try:
+        with open(path, "rb") as fh:
+            raw = tomllib.load(fh)
+    except (tomllib.TOMLDecodeError, OSError):
+        return set()
+    return {
+        normalise(title)
+        for title in (raw.get("no_descriptor") or [])
+        if isinstance(title, str) and title.strip()
+    }
+
+
+def is_exempt(title: str, exempt: set[str]) -> bool:
+    return normalise(title) in exempt
+
+
 def lookup(title: str, overrides: dict[str, str]) -> str | None:
     return overrides.get(normalise(title))
 

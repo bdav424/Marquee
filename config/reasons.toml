@@ -9,16 +9,42 @@
 # byte-for-byte, and its JavaScript exposes no search endpoint. Getting past
 # that would mean defeating an access control, and this project will not.
 #
-# In practice it is a small job. One theatre runs about ten films at a time, a
-# reason never changes once assigned, and refresh.py writes
-# logs/needs-reason.txt with a ready-to-paste stub for anything still missing.
+# refresh.py writes logs/needs-reason.txt each cycle with a ready-to-paste
+# stub for anything still missing, so this file is filled in a line at a time
+# as new films arrive. A reason never changes once CARA assigns it.
 #
 # Copy the sentence VERBATIM from filmratings.com. The parser reads the actual
 # wording — "strong bloody violence" scores differently from "some violence" —
 # so paraphrasing changes the verdict.
 #
-# Titles match loosely: case, punctuation, leading articles and a trailing
-# year are all ignored, so "The Thing" matches "the thing".
+# Titles match loosely: case, punctuation, leading articles, parentheticals,
+# a trailing year, Alamo's programming strands and "Nth Anniversary" suffixes
+# are all ignored. "Psycho Cinema Presents: Mystery Meat" finds an entry filed
+# under "Mystery Meat".
+
+# --- Films with no descriptor in existence -----------------------------------
+# MUST stay above [reasons]: once a table header is open, every key below it
+# belongs to that table, and this one would quietly become reasons.no_descriptor.
+#
+# Rating descriptors only began in 1990, so anything rated before then carries
+# a certification and nothing else — there is no sentence to find. Listing a
+# title here keeps it `unknown`, which is honest since we genuinely do not know
+# what is in it, but stops it appearing in needs-reason.txt as work that can
+# never be done. Also use it for festivals, live broadcasts and anything never
+# submitted for a rating.
+
+no_descriptor = [
+  # Seen on the live Winchester schedule: pre-1990, or never rated.
+  "Taxi Driver",
+  "Phantom of the Paradise",
+  "Mothra vs. Godzilla",
+  "Where is the Friend's House?",
+  "GenreBlast Film Festival",
+  "Six: The Musical Live!",
+]
+
+
+# --- The reasons themselves ---------------------------------------------------
 
 [reasons]
 

@@ -144,6 +144,7 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
     ready-to-paste stub.
     """
     book = reason_book.load()
+    exempt = reason_book.load_exempt()
     cache = filmratings.ReasonCache(REASON_CACHE)
     resolved = []
     from_book = from_cache = looked_up = errors = 0
@@ -180,14 +181,17 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
                 errors += 1
                 log(f"  cara: {title.name}: {str(exc)[:70]}")
 
-        missing.append(title.name)
+        # A film CARA never described stays unknown, but is not work.
+        if not reason_book.is_exempt(title.name, exempt):
+            missing.append(title.name)
         resolved.append(title)
 
     cache.save()
     write_needs_reason(missing)
 
     log(f"reasons: {from_book} from the book, {from_cache} cached, "
-        f"{looked_up} looked up, {errors} errors, {len(missing)} still unknown")
+        f"{looked_up} looked up, {errors} errors, "
+        f"{len(missing)} needing one, {len(exempt)} exempt")
     if missing:
         log(f"  add them to config/reasons.toml — stub in {NEEDS_REASON.name}")
     return resolved

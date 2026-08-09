@@ -115,6 +115,20 @@ PROGRAMMING_PREFIXES = (
     "champagne cinema", "kids camp", "time capsule", "alamo time capsule",
     "only at the alamo", "the alamo presents", "alamo presents",
     "afs presents", "cinema club", "big screen classics",
+    # Seen on the live Winchester schedule.
+    "psycho cinema presents", "genreblast film festival",
+)
+
+# Anything of the form "<strand> Presents:" is programming, not a title.
+# Real titles almost never contain the word, and this catches strands the
+# whitelist has not met yet.
+_PRESENTS_RE = re.compile(r"^.{2,40}?\s+presents\s*[:\-]\s*", re.IGNORECASE)
+
+# Alamo appends these to repertory bookings. CARA files the film, not the
+# booking: "Terminator 2: Judgment Day 35th Anniversary" is catalogued as
+# "Terminator 2: Judgment Day".
+_REISSUE_RE = re.compile(
+    r"\s*[:\-]?\s*\b\d{1,3}(?:st|nd|rd|th)\s+anniversary\b.*$", re.IGNORECASE
 )
 
 _PREFIX_RE = re.compile(
@@ -131,6 +145,8 @@ def strip_decoration(title: str) -> str:
     colon is part of the title.
     """
     cleaned = _PREFIX_RE.sub("", title).strip()
+    cleaned = _PRESENTS_RE.sub("", cleaned).strip()
+    cleaned = _REISSUE_RE.sub("", cleaned).strip()
     cleaned = re.sub(r"\s+[-–]\s+(35mm|70mm|dcp|imax).*$", "", cleaned, flags=re.I)
     # A trailing year helps a human disambiguate and only confuses the search.
     cleaned = re.sub(r"\s*\((?:19|20)\d{2}\)\s*$", "", cleaned).strip()

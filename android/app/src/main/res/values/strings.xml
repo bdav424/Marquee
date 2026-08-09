@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Winchester Marquee</string>
-    <string name="masthead">WINCHESTER</string>
+    <!-- Not "Winchester Marquee" any more. The theatre is configuration now,
+         not identity: config/markets.toml decides which city is fetched, the
+         page has a picker, and the widget's header already follows whichever
+         market the snapshot carries. Only the app's own label was still
+         frozen at the one theatre this was first built for. -->
+    <string name="app_name">Marquee</string>
     <string name="refresh">Refresh now</string>
-    <string name="widget_description">What\'s playing at Alamo Drafthouse Winchester.</string>
+    <string name="widget_description">What\'s playing at your theatre.</string>
 </resources>

@@ -21,7 +21,7 @@ import java.util.Locale
 import kotlin.concurrent.thread
 
 /**
- * Home-screen widget for the Winchester marquee.
+ * Home-screen widget for the marquee.
  *
  * Reads the same cached snapshot the web board reads and renders the verdict
  * already computed by the fetcher. It never decides anything itself, so the
@@ -290,7 +290,7 @@ class MarqueeWidget : AppWidgetProvider() {
             views.setImageViewBitmap(
                 R.id.sign,
                 SignRenderer.render(
-                    wPx, hPx, "WINCHESTER", "NO SIGNAL", true,
+                    wPx, hPx, "MARQUEE", "NO SIGNAL", true,
                     emptyList(), (problem ?: "No cached snapshot yet.") +
                         " Tap the top right to retry."
                 )
@@ -307,7 +307,7 @@ class MarqueeWidget : AppWidgetProvider() {
             views.setImageViewBitmap(
                 R.id.sign,
                 SignRenderer.render(
-                    wPx, hPx, "WINCHESTER", "BAD DATA", true,
+                    wPx, hPx, "MARQUEE", "BAD DATA", true,
                     emptyList(), "The snapshot could not be read."
                 )
             )
@@ -319,9 +319,14 @@ class MarqueeWidget : AppWidgetProvider() {
         val stamp = if (isStale) "STALE $age" else "UPDATED $age"
 
         // The masthead follows the market, so a widget pointed at another
-        // city does not keep claiming to be Winchester.
+        // city does not keep claiming to be the first one.
+        // Falls back to the generic name rather than to Winchester: a
+        // snapshot with no market block is one this widget cannot identify,
+        // and guessing a city it might not be showing is worse than not
+        // naming one.
         val masthead = snapshot.optJSONObject("market")?.optString("name")
-            ?.substringBefore(",")?.uppercase(Locale.US) ?: "WINCHESTER"
+            ?.takeIf { it.isNotEmpty() }
+            ?.substringBefore(",")?.uppercase(Locale.US) ?: "MARQUEE"
 
         views.setImageViewBitmap(
             R.id.sign,

@@ -1,4 +1,4 @@
-# Winchester Marquee — Android home-screen widget
+# Marquee — Android home-screen widget
 
 Replaces `widget/marquee-widget.js`, which is Scriptable and therefore iOS
 only. This reads the same `data/marquee.json` and renders the same verdict the
@@ -51,6 +51,18 @@ rows fit; the rest are dropped rather than scrolled.
   clean. Never silently treated as fine.
 - **Tapping** opens `board.html`, which is where a verdict can explain itself.
   A widget has no room for the reason text.
+
+## Why the package is still com.winchester.marquee
+
+The app is called Marquee; the package id is not, and changing it would be a
+worse deal than it looks. An applicationId *is* the app's identity to Android:
+a new one installs as a separate app rather than an update, so the widget has
+to be removed from the home screen and placed again, and the old one uninstalled
+by hand. That is exactly the treadmill the pinned signing key just got us off.
+
+It costs nothing to leave. Nobody sees a package id, the theatre is
+configuration rather than identity everywhere it is visible, and the id is
+required to be unique, not accurate.
 
 ## Deliberate limitations
 

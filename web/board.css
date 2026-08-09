@@ -193,7 +193,9 @@ body::before {
 .row {
   position: relative;
   display: flex;
-  align-items: center;
+  /* Top-aligned rather than centred, so a wrapped title grows downward and
+     the time and day stay level with the film's first line. */
+  align-items: flex-start;
   gap: 10px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -217,6 +219,13 @@ body::before {
 }
 
 .split { display: flex; gap: var(--cell-gap); }
+
+/* The title column: one flap run, or two when a title does not fit. */
+.namecol { display: flex; flex-direction: column; gap: var(--cell-gap); }
+/* Collapsed unless the row is wrapped. display:none rather than height:0 so
+   the flaps in it are not laid out or animated while empty. */
+.split.cont { display: none; }
+.row.wrapped .split.cont { display: flex; }
 .split.times { margin-left: auto; }
 
 /* Weighting a flagged row without switching the board off.

@@ -18,7 +18,11 @@ const POLL_MS = 60000;
 
 // The physical drum. Order matters — a flap rolls forward through this list
 // and wraps, so the sequence is what you see counting past.
-const DRUM = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.,\'&!?-/+';
+// The ellipsis earns its place on the drum: a title too long for two runs is
+// cut, and a cut with no mark reads as the film's actual name. Anything not
+// on the drum rolls to a blank instead, which is exactly how the mark went
+// missing the first time.
+const DRUM = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.,\'&!?-/+\u2026';
 const DRUM_INDEX = new Map([...DRUM].map((c, i) => [c, i]));
 
 // One full 180deg turn. At 62ms the fold was over before the eye caught it;
@@ -176,6 +180,32 @@ class Split {
       cell.roll(padded[i], rowIndex * ROW_STAGGER + i * COL_STAGGER);
     });
   }
+}
+
+/* Split a title across at most two flap runs.
+ *
+ * Scaling the letters to fit the longest title was the other option and it is
+ * the wrong one: every row shares one cell width, so one 34-character
+ * outlier would shrink the whole board to suit itself. Wrapping makes only
+ * the long title pay, which is also what a real sign does — it gives the film
+ * a second line rather than a smaller alphabet.
+ *
+ * Breaks on a space where it can. A single word longer than the run has
+ * nowhere to break, so it is cut mid-word rather than dropped.
+ */
+function wrapTitle(text, width) {
+  const body = (text || '').toUpperCase().trim();
+  if (body.length <= width) return [body];
+
+  // Prefer the last space that fits, so the break lands between words.
+  let cut = body.lastIndexOf(' ', width);
+  if (cut <= 0) cut = width;
+
+  const first = body.slice(0, cut).trim();
+  const rest = body.slice(cut).trim();
+  // The second line is the last one, so anything past it is cut with an
+  // ellipsis rather than silently vanishing.
+  return [first, rest.length > width ? rest.slice(0, width - 1) + '\u2026' : rest];
 }
 
 /* ---------- schedule logic ---------- */
@@ -380,8 +410,16 @@ function buildRow(entry) {
   strip.className = 'strip';
   row.appendChild(strip);
 
+  // Two runs stacked: the film, and its overflow. The second is built up
+  // front but stays collapsed until a title actually needs it, so wrapping
+  // costs nothing on a board of short titles.
+  const namecol = document.createElement('div');
+  namecol.className = 'namecol';
   const name = new Split(titleCells, null, 'center');
-  row.appendChild(name.el);
+  const name2 = new Split(titleCells, 'cont', 'center');
+  namecol.appendChild(name.el);
+  namecol.appendChild(name2.el);
+  row.appendChild(namecol);
 
   const time = new Split(TIME_CELLS, 'times', 'right');
   row.appendChild(time.el);
@@ -395,28 +433,40 @@ function buildRow(entry) {
     location.href = `index.html#${entry.title.slug}`;
   });
 
-  return { row, strip, name, time, meta };
+  return { row, strip, name, name2, time, meta };
 }
 
 function render(data) {
   const grid = document.getElementById('rows');
   const all = rows(data);
 
-  // Trimmed before anything is built, so the cost is in what is shown rather
-  // than in what is created and hidden.
-  const limit = Math.max(1, Math.round(parseFloat(
-    getComputedStyle(document.documentElement).getPropertyValue('--max-rows')
-  ) || 12));
-  const entries = all.slice(0, limit);
-  const overflow = all.length - entries.length;
-
-  // A width change alters how many flaps fit, so the rows are rebuilt.
+  // Measured before trimming: how many flaps fit decides which titles wrap,
+  // and a wrapped title takes two rows of the sign's height.
   const width = layout();
   if (width !== titleCells) {
     titleCells = width;
     for (const parts of built.values()) parts.row.remove();
     built.clear();
   }
+
+  // Trimmed before anything is built, so the cost is in what is shown rather
+  // than in what is created and hidden. The budget is in rows, not titles,
+  // so a board of long names does not silently grow past the cap.
+  const limit = Math.max(1, Math.round(parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--max-rows')
+  ) || 12));
+  const entries = [];
+  let used = 0;
+  for (const entry of all) {
+    const cost = wrapTitle(entry.title.display_name || entry.title.name,
+                           titleCells).length;
+    // Always show at least one, even if the first title is a two-liner and
+    // the cap is 1.
+    if (used + cost > limit && entries.length) break;
+    entries.push(entry);
+    used += cost;
+  }
+  const overflow = all.length - entries.length;
 
   document.getElementById('empty').hidden = all.length > 0;
 
@@ -442,7 +492,13 @@ function render(data) {
 
     // The strand is already carried by the colour strip, so the board shows
     // the film rather than the booking.
-    parts.name.set(entry.title.display_name || entry.title.name, index);
+    const lines = wrapTitle(entry.title.display_name || entry.title.name,
+                            titleCells);
+    parts.name.set(lines[0], index);
+    parts.row.classList.toggle('wrapped', lines.length > 1);
+    // Always set the second run, so a title that shortens on the next cycle
+    // flips its continuation back to blanks instead of leaving it stale.
+    parts.name2.set(lines[1] || '', index);
     parts.time.set(timeLabel(entry.showing.showtime), index);
 
     // Two lines, not four — a 34px row has no space for a stack.

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.RadialGradient
 import android.graphics.PointF
 import android.graphics.RectF
 import android.graphics.Shader
@@ -32,12 +33,23 @@ object SignRenderer {
 
     private const val WALL = 0x00000000        // transparent: the launcher's own wallpaper
     private const val FACE = 0xFFE2CB99.toInt()
-    private const val FACE_HOT = 0xFFF2E3BA.toInt()
+    private const val FACE_HOT = 0xFFF6EED8.toInt()
+    private const val FACE_EDGE = 0xFFE4DCCA.toInt()
+
+    /** Panels across the sign face, as on every reference marquee. */
+    private const val FACE_BAYS = 6
+    private const val SEAM_DARK = 0x475A503E
+    private const val SEAM_LIP = 0x8CFFFFFF
+
+    /** The painted rail above and below the panels. */
+    private const val RAIL_HI = 0xFFC6402C.toInt()
+    private const val RAIL_MD = 0xFF9B2A1C.toInt()
+    private const val RAIL_LO = 0xFF6E1B12.toInt()
     private const val FRAME = 0xFF17130C.toInt()
     private const val BULB = 0xFFFFD98A.toInt()
     private const val BULB_DIM = 0xFF8A7548.toInt()
-    private const val FLAP = 0xFFFCF2D8.toInt()
-    private const val FLAP_EDGE = 0xFFEBDCB2.toInt()
+    private const val FLAP = 0xB8FFFFFF.toInt()
+    private const val FLAP_EDGE = 0xB8ECE4D2.toInt()
     private const val INK = 0xFF17130C.toInt()
     private const val INK_DIM = 0xFF8A7C62.toInt()
     private const val INK_SOFT = 0xA317130C.toInt()
@@ -158,17 +170,48 @@ object SignRenderer {
         paint.color = FRAME
         canvas.drawRoundRect(body, corner, corner, paint)
 
-        // The lit face, brightest where the lamps sit closest.
+        // The face: backlit translucent panels, not a flat card.
+        //
+        // Every reference photograph shows the same construction — a grid of
+        // milk-white panels lit from behind, with visible seams and a trim
+        // rail top and bottom. A flat cream rectangle was the single biggest
+        // thing making this read as a drawing of a sign instead of a sign.
         val bulbLane = u * 2.8f
         val face = RectF(
             body.left + bulbLane, body.top + bulbLane,
             body.right - bulbLane, body.bottom - bulbLane
         )
-        paint.shader = LinearGradient(
-            0f, face.top, 0f, face.bottom, FACE_HOT, FACE, Shader.TileMode.CLAMP
+
+        // The tubes behind the panels: brightest at the middle, falling off
+        // to the edges, which is what a box full of them actually looks like.
+        paint.shader = RadialGradient(
+            face.centerX(), face.top + face.height() * 0.42f,
+            max(face.height() * 0.95f, 1f),
+            intArrayOf(0xFFFFFFFF.toInt(), FACE_HOT, FACE_EDGE),
+            floatArrayOf(0f, 0.55f, 1f),
+            Shader.TileMode.CLAMP
         )
-        canvas.drawRoundRect(face, u * 1.2f, u * 1.2f, paint)
+        canvas.drawRect(face, paint)
         paint.shader = null
+
+        // Panel seams: a shadowed edge and a bright lip, the way abutting
+        // acrylic panels catch the light from inside.
+        for (i in 1 until FACE_BAYS) {
+            val x = face.left + face.width() * i / FACE_BAYS
+            paint.color = SEAM_DARK
+            canvas.drawRect(x - u * 0.16f, face.top, x + u * 0.16f, face.bottom, paint)
+            paint.color = SEAM_LIP
+            canvas.drawRect(x + u * 0.16f, face.top, x + u * 0.26f, face.bottom, paint)
+        }
+
+        val rail = u * 1.5f
+
+        // Inner shadow, so the face sits inside the frame rather than on it.
+        paint.style = Paint.Style.STROKE
+        paint.color = 0x57000000
+        paint.strokeWidth = u * 1.1f
+        canvas.drawRect(face, paint)
+        paint.style = Paint.Style.FILL
 
         drawBulbs(canvas, paint, body, bulbLane, u * 0.66f, u * 3.4f)
 
@@ -210,7 +253,20 @@ object SignRenderer {
         canvas.drawText(stamp, face.right - pad, nameBase, paint)
         paint.textAlign = Paint.Align.LEFT
 
-        val y = header.bottom + u * 1.6f
+        // The trim rails: one under the header, one along the bottom. The
+        // Senator puts its red band exactly there, and it also stops the
+        // panel seams running into the frame.
+        for (ry in floatArrayOf(header.bottom, face.bottom - rail)) {
+            paint.shader = LinearGradient(
+                0f, ry, 0f, ry + rail,
+                intArrayOf(RAIL_HI, RAIL_MD, RAIL_LO),
+                floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
+            )
+            canvas.drawRect(face.left, ry, face.right, ry + rail, paint)
+            paint.shader = null
+        }
+
+        val y = header.bottom + rail + u * 1.4f
 
         // --- a message instead of rows -------------------------------------
         if (message != null) {
@@ -228,7 +284,7 @@ object SignRenderer {
         // --- rows of flaps -------------------------------------------------
         if (rows.isEmpty()) return bitmap
 
-        val available = face.height() - (y - face.top) - pad
+        val available = face.height() - (y - face.top) - rail - u * 1.2f
         val rowGap = u * 0.8f
         val minH = face.height() * 0.045f  // below this the letters stop reading
         val maxH = face.height() * 0.16f   // above it a tall widget just gapes
@@ -337,6 +393,8 @@ object SignRenderer {
             val cell = RectF(x, top, x + cellW, top + cellH)
 
             paint.style = Paint.Style.FILL
+            // Translucent: the panels behind are lit, and a solid flap would
+            // block the light that makes the face look like a face.
             paint.shader = LinearGradient(
                 0f, cell.top, 0f, cell.bottom, FLAP, FLAP_EDGE, Shader.TileMode.CLAMP
             )

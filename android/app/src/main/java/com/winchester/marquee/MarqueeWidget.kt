@@ -60,8 +60,14 @@ class MarqueeWidget : AppWidgetProvider() {
         private const val FALLBACK_W_DP = 250
         private const val FALLBACK_H_DP = 110
 
-        /** More rows than this and the flaps stop being legible. */
-        private const val MAX_ROWS = 12
+        /**
+         * Upper bound on rows handed to the renderer.
+         *
+         * Not a layout decision — the sign decides how many actually fit from
+         * its own height. This only stops a very tall widget asking for the
+         * whole week when a marquee is a glance at what is next.
+         */
+        private const val MAX_ROWS = 20
 
         /** The chase frames, one per SignRenderer channel. */
         private val LAMP_IDS = intArrayOf(R.id.lamp0, R.id.lamp1, R.id.lamp2)

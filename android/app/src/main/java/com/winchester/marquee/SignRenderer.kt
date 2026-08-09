@@ -64,8 +64,20 @@ object SignRenderer {
      */
     private const val MIN_CHARS = 15
 
-    /** Flaps in the time run. "12:00P" is the longest a showtime gets. */
-    private const val TIME_CELLS = 6
+    /**
+     * Flaps in the time run: as many as the longest showtime on the board
+     * needs, never more.
+     *
+     * Fixed at six for "12:00P", a five-character time like "3:45P" got a
+     * blank flap on its left — correct right-alignment, and it reads as a
+     * missing letter. When nothing on the board has a two-digit hour, the
+     * column should simply be narrower.
+     */
+    private fun timeCellsFor(rows: List<Row>): Int {
+        var longest = 5
+        for (row in rows) longest = max(longest, row.time.length)
+        return longest
+    }
 
     /** Lamp frames are drawn at this fraction of the sign, then scaled up. */
     private const val LAMP_SCALE = 0.28f
@@ -221,39 +233,43 @@ object SignRenderer {
         val minH = face.height() * 0.045f  // below this the letters stop reading
         val maxH = face.height() * 0.16f   // above it a tall widget just gapes
 
-        // Fit the rows to the height, not a fixed row height to the rows.
-        var visible = rows.size
-        var cellH = (available - rowGap * (visible - 1)) / visible
-        while (visible > 1 && cellH < minH) {
-            visible--
-            cellH = (available - rowGap * (visible - 1)) / visible
-        }
-        cellH = min(cellH, maxH)
-
-        // Height is only half the constraint. Everything on a row scales with
-        // cellH — flaps, time, marker — so a tall cell on a narrow sign spends
-        // the whole width on a few big letters and truncates the film. Cap the
-        // cell at whatever still leaves a title worth reading.
+        // The width decides how big a row can be, and the height decides how
+        // many of them there is room for. That ordering is the whole rule.
         //
-        // The coefficient is the row's width in units of cellH: TIME_CELLS and
-        // MIN_CHARS flaps at 0.52 each, plus the meta column, which is the
-        // marker and a four-character day at 0.42 of the cell.
+        // Everything on a row scales with cellH — flaps, time, marker — so on
+        // a narrow sign a tall cell spends the width on a few big letters and
+        // truncates the film. The coefficient is the row's width in units of
+        // cellH: the time and MIN_CHARS flaps at 0.52 each, plus the meta
+        // column, which is the marker and a four-character day at 0.42.
         val cellGap = max(u * 0.18f, 1f)
+        val timeCells = timeCellsFor(rows)
         val perMetaChar = 0.6f * 0.42f     // monospace advance, as a fraction
-        val widthUnits = (TIME_CELLS + MIN_CHARS) * 0.52f + 6f * perMetaChar
+        val widthUnits = (timeCells + MIN_CHARS) * 0.52f + 6f * perMetaChar
         val widthCap = (face.width() - 3 * pad - MIN_CHARS * cellGap) / widthUnits
-        cellH = min(cellH, max(widthCap, minH))
+        var cellH = widthCap.coerceIn(minH, maxH)
+
+        // Then take as many rows as fit at that size. Growing the widget adds
+        // rows rather than air: leftover height used to go into the gaps, and
+        // a taller board became the same films further apart, which is not
+        // what a board does with more room.
+        var visible = min(rows.size,
+            floor((available + rowGap) / (cellH + rowGap)).toInt())
+        if (visible < 1) {
+            // Too short for even one row at the width-preferred size, so the
+            // cell gives way instead of the row disappearing.
+            visible = 1
+            cellH = max(available, minH * 0.5f)
+        }
 
         val cellW = cellH * 0.52f          // a flap is taller than it is wide
 
-        // Whatever height is left over goes into the gaps rather than into
-        // taller cells: the cell is already as large as the width allows, so
-        // growing it further would only take characters off the titles. The
-        // rows spread down the sign instead of stacking at the top with a
-        // void beneath them.
+        // Rows stay close together. Any remainder after the last whole row
+        // is shared out, but only a little — a board's rows are a stack, not
+        // a spaced list, and airy gaps read as a layout that has lost track of
+        // its content.
         val spread = if (visible > 1) {
             ((available - visible * cellH) / (visible - 1))
-                .coerceIn(rowGap, cellH * 0.8f)
+                .coerceIn(rowGap, cellH * 0.22f)
         } else rowGap
 
         // Fixed columns for the whole board, not one layout per row. The
@@ -273,7 +289,7 @@ object SignRenderer {
             }
         }
 
-        val timeRun = TIME_CELLS * (cellW + cellGap) - cellGap
+        val timeRun = timeCells * (cellW + cellGap) - cellGap
         val dayLeft = face.right - rowPad - metaCol
         val timeLeft = dayLeft - rowPad - timeRun
         val flapRight = timeLeft - rowPad
@@ -282,7 +298,7 @@ object SignRenderer {
             val row = rows[i]
             val top = y + i * (cellH + spread)
             drawRow(canvas, paint, face, row, top, cellH, cellW, cellGap,
-                    rowPad, flapRight, timeLeft, dayLeft)
+                    rowPad, flapRight, timeLeft, dayLeft, timeCells)
         }
         return bitmap
     }
@@ -356,7 +372,8 @@ object SignRenderer {
         pad: Float,
         flapRight: Float,
         timeLeft: Float,
-        dayLeft: Float
+        dayLeft: Float,
+        timeCells: Int
     ) {
         val ink = if (row.flagged) INK_DIM else INK
         paint.typeface = mono
@@ -373,7 +390,7 @@ object SignRenderer {
 
         // The time, flapped too, right-aligned so the digits line up column to
         // column exactly as they do on the board.
-        drawFlaps(canvas, paint, timeLeft, top, TIME_CELLS, cellW, cellH,
+        drawFlaps(canvas, paint, timeLeft, top, timeCells, cellW, cellH,
                   cellGap, base, row.time, ink, true)
 
         // Day and marker stay plain text: on the board these live in the meta

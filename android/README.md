@@ -54,6 +54,18 @@ rows fit; the rest are dropped rather than scrolled.
 
 ## Deliberate limitations
 
+**The sign is drawn smaller than the widget and scaled up.** Everything handed
+to RemoteViews crosses a Binder transaction, and an oversized one is rejected
+whole — not the picture, the entire update, leaving a widget that shows
+nothing with no error anywhere a person would look. At native resolution on an
+ordinary phone the bitmaps came to 4 MB against a budget of roughly 1 MB, and
+that is exactly what happened. `SignRenderer.BUDGET_BYTES` caps it, so the
+sign is softer than the screen could show and, in exchange, present.
+
+Setting `ANIMATE_LAMPS = false` frees the three chase frames and buys back
+some sharpness.
+
+
 - **No chasing lamps.** A widget repaints on the host's schedule, not per
   frame, so the animated border on the web board has no equivalent here. The
   bezel is drawn as a static gradient.

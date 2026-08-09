@@ -56,7 +56,34 @@ object SignRenderer {
     const val CHANNELS = 3
 
     /** Lamp frames are drawn at this fraction of the sign, then scaled up. */
-    private const val LAMP_SCALE = 0.5f
+    private const val LAMP_SCALE = 0.28f
+
+    /**
+     * Total bitmap bytes one widget update may carry.
+     *
+     * Everything handed to RemoteViews crosses a Binder transaction, and the
+     * system rejects an oversized one outright — not the picture, the whole
+     * update. The widget then shows nothing at all, with no error anywhere a
+     * person would look. Drawing at native resolution reached 4 MB on an
+     * ordinary phone and did exactly that.
+     *
+     * So the sign is drawn small and scaled up by the ImageView. It is softer
+     * than it would be at native resolution. It is also visible.
+     */
+    private const val BUDGET_BYTES = 800_000f
+
+    /**
+     * How far to shrink the render so the whole update fits the budget.
+     *
+     * Accounts for the lamp frames too, since they ride in the same
+     * transaction — three of them at LAMP_SCALE in each dimension.
+     */
+    fun budgetScale(widthPx: Int, heightPx: Int, animating: Boolean): Float {
+        val lampShare = if (animating) 3f * LAMP_SCALE * LAMP_SCALE else 0f
+        val bytes = widthPx.toFloat() * heightPx * 4f * (1f + lampShare)
+        if (bytes <= BUDGET_BYTES) return 1f
+        return kotlin.math.sqrt(BUDGET_BYTES / bytes)
+    }
 
     /** One line of the board. */
     data class Row(

@@ -132,11 +132,46 @@ class MarqueeWidget : AppWidgetProvider() {
 
             // Each widget can be a different size, so each gets its own draw.
             for (id in widgetIds) {
-                manager.updateAppWidget(
-                    id, render(context, manager, id, body, stale, result.problem)
-                )
+                val views = try {
+                    render(context, manager, id, body, stale, result.problem)
+                } catch (e: Throwable) {
+                    // OutOfMemoryError included, deliberately: a bitmap that
+                    // cannot be allocated must still leave something on the
+                    // screen that says so.
+                    textOnly(context, "Could not draw the sign: " +
+                        "${e.javaClass.simpleName}. Tap to open the board.")
+                }
+                try {
+                    manager.updateAppWidget(id, views)
+                } catch (e: Exception) {
+                    // An oversized update is refused whole. Retry with the
+                    // one view that carries no bitmap at all.
+                    manager.updateAppWidget(
+                        id,
+                        textOnly(context, "The sign was too large to send. " +
+                            "Make the widget smaller, or tap to open the board.")
+                    )
+                }
             }
         }
+    }
+
+    /** The last resort: no bitmaps, so nothing here can breach the budget. */
+    private fun textOnly(context: Context, message: String): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_marquee)
+        views.setViewVisibility(R.id.sign, View.GONE)
+        views.setViewVisibility(R.id.lamps, View.GONE)
+        views.setViewVisibility(R.id.fallback, View.VISIBLE)
+        views.setTextViewText(R.id.fallback, message)
+        views.setOnClickPendingIntent(
+            R.id.widget_root,
+            PendingIntent.getActivity(
+                context, 0,
+                Intent(Intent.ACTION_VIEW, Uri.parse(BASE_URL + PAGE_PATH)),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        )
+        return views
     }
 
     /** What went wrong, in the words the person holding the phone needs. */
@@ -203,13 +238,23 @@ class MarqueeWidget : AppWidgetProvider() {
             .takeIf { it > 0 } ?: FALLBACK_W_DP
         val hDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
             .takeIf { it > 0 } ?: FALLBACK_H_DP
-        val wPx = (wDp * metrics.density).toInt()
-        val hPx = (hDp * metrics.density).toInt()
+        // Drawn smaller than the widget and scaled up by the ImageView. At
+        // native resolution the bitmaps exceeded the RemoteViews transaction
+        // limit, and an oversized update is dropped whole — the widget went
+        // blank with no error anywhere visible.
+        val k = SignRenderer.budgetScale(
+            (wDp * metrics.density).toInt(),
+            (hDp * metrics.density).toInt(),
+            ANIMATE_LAMPS
+        )
+        val density = metrics.density * k
+        val wPx = (wDp * density).toInt()
+        val hPx = (hDp * density).toInt()
 
         if (ANIMATE_LAMPS) {
             for ((phase, id) in LAMP_IDS.withIndex()) {
                 views.setImageViewBitmap(
-                    id, SignRenderer.lamps(wPx, hPx, metrics.density, phase)
+                    id, SignRenderer.lamps(wPx, hPx, density, phase)
                 )
             }
         } else {
@@ -223,7 +268,7 @@ class MarqueeWidget : AppWidgetProvider() {
             views.setImageViewBitmap(
                 R.id.sign,
                 SignRenderer.render(
-                    wPx, hPx, metrics.density, "WINCHESTER", "NO SIGNAL", true,
+                    wPx, hPx, density, "WINCHESTER", "NO SIGNAL", true,
                     emptyList(), (problem ?: "No cached snapshot yet.") +
                         " Tap the top right to retry."
                 )
@@ -240,7 +285,7 @@ class MarqueeWidget : AppWidgetProvider() {
             views.setImageViewBitmap(
                 R.id.sign,
                 SignRenderer.render(
-                    wPx, hPx, metrics.density, "WINCHESTER", "BAD DATA", true,
+                    wPx, hPx, density, "WINCHESTER", "BAD DATA", true,
                     emptyList(), "The snapshot could not be read."
                 )
             )
@@ -259,7 +304,7 @@ class MarqueeWidget : AppWidgetProvider() {
         views.setImageViewBitmap(
             R.id.sign,
             SignRenderer.render(
-                wPx, hPx, metrics.density, masthead, stamp, isStale,
+                wPx, hPx, density, masthead, stamp, isStale,
                 rows.take(MAX_ROWS).map {
                     SignRenderer.Row(it.name, it.time, it.day, it.flagged, it.unknown)
                 },

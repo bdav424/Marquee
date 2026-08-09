@@ -16,6 +16,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+from marquee.adapters.filmratings import strip_decoration
 from marquee.model import Snapshot, Title
 from marquee.series import SeriesConfig, resolve
 from marquee.severity import Config, evaluate, parse
@@ -41,7 +42,12 @@ def build_title(
 
     return {
         "slug": title.slug,
+        # Verbatim, for the drill-in panel.
         "name": title.name,
+        # The film without Alamo's booking decoration, for surfaces with a
+        # character budget. "Psycho Cinema Presents: Mystery Meat" spent a
+        # whole board row on the strand, which the colour strip already shows.
+        "display_name": strip_decoration(title.name),
         "rating": title.mpa_rating,
         # Verbatim, for the drill-in panel. Never paraphrased.
         "rating_reason": title.mpa_reason,

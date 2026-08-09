@@ -76,7 +76,7 @@ class TestPayloadContract(unittest.TestCase):
 
     TITLE_KEYS = {
         "slug", "name", "rating", "rating_reason", "runtime_minutes", "genres",
-        "synopsis", "poster", "flagged", "flags", "severity",
+        "synopsis", "poster", "flagged", "flags", "severity", "display_name",
         "unknown_categories", "reason_parsed", "series", "series_secondary",
         "showings",
     }
@@ -152,6 +152,31 @@ class TestVerdict(unittest.TestCase):
         )
         self.assertFalse(entry["flagged"])
         self.assertEqual(entry["severity"]["language"], 3)
+
+
+class TestDisplayName(unittest.TestCase):
+    """Surfaces with a character budget get the film, not the booking."""
+
+    def test_strand_prefix_is_dropped(self):
+        entry = build_title(
+            title("m", "Psycho Cinema Presents: Mystery Meat"), SEVERITY, SERIES
+        )
+        self.assertEqual(entry["display_name"], "Mystery Meat")
+
+    def test_anniversary_suffix_is_dropped(self):
+        entry = build_title(
+            title("t", "Terminator 2: Judgment Day 35th Anniversary"), SEVERITY, SERIES
+        )
+        self.assertEqual(entry["display_name"], "Terminator 2: Judgment Day")
+
+    def test_a_real_colon_survives(self):
+        entry = build_title(title("s", "Spider-Man: Brand New Day"), SEVERITY, SERIES)
+        self.assertEqual(entry["display_name"], "Spider-Man: Brand New Day")
+
+    def test_the_verbatim_name_is_still_carried_for_the_panel(self):
+        raw = "Psycho Cinema Presents: Mystery Meat"
+        entry = build_title(title("m", raw), SEVERITY, SERIES)
+        self.assertEqual(entry["name"], raw)
 
 
 class TestOrdering(unittest.TestCase):

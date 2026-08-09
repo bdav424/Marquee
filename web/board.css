@@ -30,6 +30,10 @@
   --cell-aspect: 1.75;
   /* Vertical space between rows, as a fraction of flap height. */
   --row-gap: 0.125;
+  /* How many films the board shows. A real marquee lists what is on next, not
+     the whole week: Winchester runs 31 titles and all of them made an 827px
+     sign that took 20 seconds to roll in. The rest are a tap away on the grid. */
+  --max-rows: 12;
 
   /* Marquee chaser wiring. Bulb n sits on channel n % --bulb-channels, and
      the drum energises --bulb-on channels at a time.
@@ -396,6 +400,14 @@ body::before {
 .legend b { color: var(--bulb); }
 
 .empty { padding: 50px 16px; text-align: center; color: var(--ink-faint); }
+
+.more {
+  margin: 10px 2px 0;
+  text-align: right;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
 
 /* Cell size is set from measured width in board.js; these are the values
    used before the first measurement lands. */

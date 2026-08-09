@@ -221,7 +221,12 @@ class MarqueeWidget : AppWidgetProvider() {
 
             rows.add(
                 Row(
-                    name = title.optString("name", title.optString("slug", "?")),
+                    // display_name drops Alamo's booking decoration; a widget
+                    // row has no characters to spare on a strand name.
+                    name = title.optString(
+                        "display_name",
+                        title.optString("name", title.optString("slug", "?"))
+                    ),
                     time = at.format(DateTimeFormatter.ofPattern("h:mma", Locale.US))
                         .replace("AM", "A").replace("PM", "P"),
                     day = dayLabel(at),

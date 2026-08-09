@@ -1,7 +1,7 @@
 {
   "theater": "Alamo Drafthouse Winchester",
-  "fetched_at": "2026-08-09T01:12:53.782947+00:00",
-  "generated_at": "2026-08-09T01:12:53.788575+00:00",
+  "fetched_at": "2026-08-09T02:57:08.438202+00:00",
+  "generated_at": "2026-08-09T02:57:08.441276+00:00",
   "stale": false,
   "thresholds": {
     "sexual": 1,
@@ -19,16 +19,200 @@
   ],
   "titles": [
     {
-      "slug": "salt-flats",
-      "name": "Salt Flats",
-      "rating": "NR",
+      "slug": "psycho-cinema-presents:-mystery-meat",
+      "name": "Psycho Cinema Presents: Mystery Meat",
+      "rating": "PG-13",
       "rating_reason": null,
-      "runtime_minutes": 94,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "terror_tuesday",
+        "label": "TERROR TUESDAY",
+        "background": "#8B0000",
+        "foreground": "#FFF0F0",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T09:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 7",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "nausicaa-of-the-valley-of-the-wind",
+      "name": "Nausicaa of the Valley of the Wind",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "psycho_cinema",
+        "label": "PSYCHO CINEMA",
+        "background": "#6A1B4D",
+        "foreground": "#FFE8F4",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T11:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "terminator-2:-judgment-day",
+      "name": "Terminator 2: Judgment Day",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "psycho_cinema",
+        "label": "PSYCHO CINEMA",
+        "background": "#6A1B4D",
+        "foreground": "#FFE8F4",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T17:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 5",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "where-is-the-friend's-house?",
+      "name": "Where is the Friend's House?",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "psycho_cinema",
+        "label": "PSYCHO CINEMA",
+        "background": "#6A1B4D",
+        "foreground": "#FFE8F4",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-10T11:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 7",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "12-monkeys",
+      "name": "12 Monkeys",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
         "Horror"
       ],
-      "synopsis": "Something is walking the dry lake bed, and it is keeping pace.",
-      "poster": "posters/salt-flats.jpg",
+      "synopsis": null,
+      "poster": null,
       "flagged": true,
       "flags": [
         {
@@ -57,34 +241,34 @@
       ],
       "reason_parsed": false,
       "series": {
-        "key": "terror_tuesday",
-        "label": "TERROR TUESDAY",
-        "background": "#8B0000",
-        "foreground": "#FFF0F0",
+        "key": "psycho_cinema",
+        "label": "PSYCHO CINEMA",
+        "background": "#6A1B4D",
+        "foreground": "#FFE8F4",
         "one_night": true,
         "recognised": true
       },
       "series_secondary": [],
       "showings": [
         {
-          "showtime": "2026-08-10T21:45:00+00:00",
-          "format": "35mm",
+          "showtime": "2026-08-10T21:00:00+00:00",
+          "format": "DCP",
           "auditorium": "Theater 1",
           "sold_out": false
         }
       ]
     },
     {
-      "slug": "the-gleaners-hour",
-      "name": "The Gleaner's Hour",
-      "rating": "R",
-      "rating_reason": "Rated R for aberrant conduct and unsettling tableaux.",
-      "runtime_minutes": 118,
+      "slug": "twilight",
+      "name": "Twilight",
+      "rating": "PG",
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
         "Drama"
       ],
-      "synopsis": "A restorer of church frescoes begins repainting the saints.",
-      "poster": "posters/the-gleaners-hour.jpg",
+      "synopsis": null,
+      "poster": null,
       "flagged": false,
       "flags": [],
       "severity": {
@@ -103,144 +287,465 @@
       ],
       "reason_parsed": false,
       "series": {
-        "key": "weird_wednesday",
-        "label": "WEIRD WEDNESDAY",
-        "background": "#5B2C8D",
-        "foreground": "#EFE0FF",
+        "key": "terror_tuesday",
+        "label": "TERROR TUESDAY",
+        "background": "#8B0000",
+        "foreground": "#FFF0F0",
         "one_night": true,
         "recognised": true
       },
       "series_secondary": [],
       "showings": [
         {
-          "showtime": "2026-08-12T22:00:00+00:00",
-          "format": "35mm",
+          "showtime": "2026-08-11T02:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 6",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "paw-patrol:-the-dino-movie",
+      "name": "Paw Patrol: The Dino Movie",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "film_club",
+        "label": "FILM CLUB",
+        "background": "#1F5F5B",
+        "foreground": "#E4FFFB",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T05:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 5",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-odyssey",
+      "name": "The Odyssey",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": {
+        "key": "film_club",
+        "label": "FILM CLUB",
+        "background": "#1F5F5B",
+        "foreground": "#E4FFFB",
+        "one_night": true,
+        "recognised": true
+      },
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T11:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 2",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "in-the-mouth-of-madness",
+      "name": "In the Mouth of Madness",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T08:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 6",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "phantom-of-the-paradise",
+      "name": "Phantom of the Paradise",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T10:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 6",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "mothra-vs.-godzilla",
+      "name": "Mothra vs. Godzilla",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T12:00:00+00:00",
+          "format": "DCP",
           "auditorium": "Theater 1",
           "sold_out": false
         }
       ]
     },
     {
-      "slug": "the-long-dark",
-      "name": "The Long Dark",
+      "slug": "ernie-&-emma",
+      "name": "Ernie & Emma",
       "rating": "R",
-      "rating_reason": "Rated R for strong bloody violence, language throughout, and some sexual content.",
-      "runtime_minutes": 138,
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
-        "Thriller",
         "Drama"
       ],
-      "synopsis": "A hitchhiker takes the last ride out of a town that is already gone.",
-      "poster": "posters/the-long-dark.jpg",
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T13:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "mystery-machine",
+      "name": "Mystery Machine",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-09T15:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 2",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "spider-man:-brand-new-day",
+      "name": "Spider-Man: Brand New Day",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Horror"
+      ],
+      "synopsis": null,
+      "poster": null,
       "flagged": true,
       "flags": [
         {
-          "category": "sexual",
-          "score": 1,
-          "threshold": 1,
-          "reason": "sexual scored 1, threshold is 1",
+          "category": "genre",
+          "score": null,
+          "threshold": null,
+          "reason": "TMDB genre includes Horror",
           "evidence": [
-            "some sexual content"
-          ]
-        },
-        {
-          "category": "violence",
-          "score": 3,
-          "threshold": 3,
-          "reason": "violence scored 3, threshold is 3",
-          "evidence": [
-            "strong bloody violence",
-            "strong bloody violence"
+            "Horror"
           ]
         }
       ],
       "severity": {
-        "sexual": 1,
-        "violence": 3,
-        "language": 3,
-        "substance": 0,
-        "frightening": 0
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
       },
-      "unknown_categories": [],
-      "reason_parsed": true,
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
       "series": null,
       "series_secondary": [],
       "showings": [
         {
-          "showtime": "2026-08-09T19:30:00+00:00",
+          "showtime": "2026-08-09T22:00:00+00:00",
           "format": "DCP",
-          "auditorium": "Theater 3",
+          "auditorium": "Theater 2",
           "sold_out": false
-        },
-        {
-          "showtime": "2026-08-10T16:00:00+00:00",
-          "format": "DCP",
-          "auditorium": "Theater 3",
-          "sold_out": true
         }
       ]
     },
     {
-      "slug": "commission-sales",
-      "name": "Commission Sales",
+      "slug": "one-night-only",
+      "name": "One Night Only",
       "rating": "R",
-      "rating_reason": "Rated R for pervasive language and some drug use.",
-      "runtime_minutes": 112,
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
-        "Comedy"
+        "Drama"
       ],
-      "synopsis": "Four brokers, one quota, and a fax machine that will not stop.",
-      "poster": "posters/commission-sales.jpg",
+      "synopsis": null,
+      "poster": null,
       "flagged": false,
       "flags": [],
       "severity": {
-        "sexual": 0,
-        "violence": 0,
-        "language": 3,
-        "substance": 1,
-        "frightening": 0
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
       },
-      "unknown_categories": [],
-      "reason_parsed": true,
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
       "series": null,
       "series_secondary": [],
       "showings": [
         {
-          "showtime": "2026-08-09T20:15:00+00:00",
+          "showtime": "2026-08-10T08:00:00+00:00",
           "format": "DCP",
-          "auditorium": "Theater 2",
-          "sold_out": false
-        },
-        {
-          "showtime": "2026-08-11T18:30:00+00:00",
-          "format": "DCP",
-          "auditorium": "Theater 2",
+          "auditorium": "Theater 4",
           "sold_out": false
         }
       ]
     },
     {
-      "slug": "ironwood",
-      "name": "Ironwood",
-      "rating": "PG-13",
-      "rating_reason": "Rated PG-13 for sequences of violence and action.",
-      "runtime_minutes": 127,
+      "slug": "salt-flats",
+      "name": "Salt Flats",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
-        "Action"
+        "Drama"
       ],
-      "synopsis": "A logging dispute becomes a siege.",
-      "poster": "posters/ironwood.jpg",
+      "synopsis": null,
+      "poster": null,
       "flagged": false,
       "flags": [],
       "severity": {
-        "sexual": 0,
-        "violence": 2,
-        "language": 0,
-        "substance": 0,
-        "frightening": 0
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
       },
-      "unknown_categories": [],
-      "reason_parsed": true,
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-10T11:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 1",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "six:-the-musical-live!",
+      "name": "Six: The Musical Live!",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
       "series": null,
       "series_secondary": [],
       "showings": [
@@ -253,40 +758,38 @@
       ]
     },
     {
-      "slug": "paper-boats",
-      "name": "Paper Boats",
-      "rating": "PG",
-      "rating_reason": "Rated PG for mild thematic elements.",
-      "runtime_minutes": 101,
+      "slug": "the-twilight-saga:-new-moon",
+      "name": "The Twilight Saga: New Moon",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
-        "Family",
-        "Adventure"
+        "Drama"
       ],
-      "synopsis": "Two siblings map a river that is not on any map.",
-      "poster": "posters/paper-boats.jpg",
+      "synopsis": null,
+      "poster": null,
       "flagged": false,
       "flags": [],
       "severity": {
-        "sexual": 0,
-        "violence": 0,
-        "language": 0,
-        "substance": 0,
-        "frightening": 1
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
       },
-      "unknown_categories": [],
-      "reason_parsed": true,
-      "series": {
-        "key": "kids_camp",
-        "label": "KIDS CAMP",
-        "background": "#2E7D32",
-        "foreground": "#EAFBEA",
-        "one_night": false,
-        "recognised": true
-      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
       "series_secondary": [],
       "showings": [
         {
-          "showtime": "2026-08-11T11:00:00+00:00",
+          "showtime": "2026-08-10T20:00:00+00:00",
           "format": "DCP",
           "auditorium": "Theater 4",
           "sold_out": false
@@ -294,90 +797,529 @@
       ]
     },
     {
-      "slug": "hydroplane",
-      "name": "Hydroplane",
+      "slug": "ghost:-2-big-to-rig",
+      "name": "GHOST: 2 Big To Rig",
       "rating": "R",
-      "rating_reason": "Rated R for graphic nudity and language.",
-      "runtime_minutes": 99,
+      "rating_reason": null,
+      "runtime_minutes": null,
       "genres": [
         "Drama"
       ],
-      "synopsis": "A speed record attempt on a lake that freezes early.",
-      "poster": "posters/hydroplane.jpg",
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T02:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 4",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-brink-of-war",
+      "name": "The Brink of War",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T03:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 6",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "butthole-surfers:-the-hole-truth-and-not",
+      "name": "Butthole Surfers: The Hole Truth and Nothing Butt",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T06:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 2",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "michael-mann's-manhunter:-the-final-cut",
+      "name": "Michael Mann's Manhunter: The Final Cut",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T11:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 7",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-outsiders:-the-complete-novel",
+      "name": "The Outsiders: The Complete Novel",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T19:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "genreblast-film-festival",
+      "name": "GenreBlast Film Festival",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-11T20:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 5",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "ironwood",
+      "name": "Ironwood",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Horror"
+      ],
+      "synopsis": null,
+      "poster": null,
       "flagged": true,
       "flags": [
         {
-          "category": "sexual",
-          "score": 3,
-          "threshold": 1,
-          "reason": "sexual scored 3, threshold is 1",
+          "category": "genre",
+          "score": null,
+          "threshold": null,
+          "reason": "TMDB genre includes Horror",
           "evidence": [
-            "graphic nudity"
+            "Horror"
           ]
         }
       ],
       "severity": {
-        "sexual": 3,
-        "violence": 0,
-        "language": 3,
-        "substance": 0,
-        "frightening": 0
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
       },
-      "unknown_categories": [],
-      "reason_parsed": true,
-      "series": {
-        "key": "adults_only",
-        "label": "21+",
-        "background": "#B26A00",
-        "foreground": "#FFF6E5",
-        "one_night": false,
-        "recognised": true
-      },
-      "series_secondary": [
-        {
-          "key": "unrecognised",
-          "label": "CURSED FILM CLUB",
-          "background": "#4A4A52",
-          "foreground": "#F5F5F0",
-          "one_night": false,
-          "recognised": false
-        }
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
       ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
       "showings": [
         {
-          "showtime": "2026-08-11T21:00:00+00:00",
+          "showtime": "2026-08-11T23:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-dog-stars",
+      "name": "The Dog Stars",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T02:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 7",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "taxi-driver",
+      "name": "Taxi Driver",
+      "rating": "PG-13",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T03:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 4",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "the-fast-and-the-furious",
+      "name": "The Fast and the Furious",
+      "rating": "R",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T04:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 1",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "stolen-kingdom",
+      "name": "Stolen Kingdom",
+      "rating": "PG",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T05:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 3",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "hydroplane",
+      "name": "Hydroplane",
+      "rating": "PG",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T05:00:00+00:00",
           "format": "DCP",
           "auditorium": "Theater 2",
+          "sold_out": false
+        }
+      ]
+    },
+    {
+      "slug": "toy-story-5",
+      "name": "Toy Story 5",
+      "rating": "NR",
+      "rating_reason": null,
+      "runtime_minutes": null,
+      "genres": [
+        "Drama"
+      ],
+      "synopsis": null,
+      "poster": null,
+      "flagged": false,
+      "flags": [],
+      "severity": {
+        "sexual": null,
+        "violence": null,
+        "language": null,
+        "substance": null,
+        "frightening": null
+      },
+      "unknown_categories": [
+        "sexual",
+        "violence",
+        "language",
+        "substance",
+        "frightening"
+      ],
+      "reason_parsed": false,
+      "series": null,
+      "series_secondary": [],
+      "showings": [
+        {
+          "showtime": "2026-08-12T06:00:00+00:00",
+          "format": "DCP",
+          "auditorium": "Theater 5",
           "sold_out": false
         }
       ]
     }
   ],
   "diagnostics": {
-    "title_count": 7,
+    "title_count": 31,
     "flagged_count": 3,
-    "unknown_reason_count": 2,
-    "unmatched_reason_fragments": [
-      [
-        "aberrant conduct",
-        1
-      ],
-      [
-        "unsettling tableaux",
-        1
-      ]
-    ],
-    "unparsed_reason_strings": [
-      {
-        "title": "The Gleaner's Hour",
-        "reason": "Rated R for aberrant conduct and unsettling tableaux."
-      }
-    ],
-    "unrecognised_series": [
-      [
-        "Cursed Film Club",
-        1
-      ]
-    ]
+    "unknown_reason_count": 31,
+    "unmatched_reason_fragments": [],
+    "unparsed_reason_strings": [],
+    "unrecognised_series": []
   }
 }

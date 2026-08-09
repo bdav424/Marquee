@@ -25,6 +25,14 @@ const FLIP_MS = 100;
 const COL_STAGGER = 18;    // each column starts slightly after the one left of it
 const ROW_STAGGER = 70;
 
+// Longest run of flaps a single cell will turn through. A drum has 47
+// positions, so a blank cell reaching Z is 26 flips and one reaching a
+// punctuation mark is far more — the first paint of a full board took ten
+// seconds of rolling. Beyond this the cell is silently seeded that many steps
+// short of its target and rolls the rest, which looks the same (a run of
+// letters counting past) and bounds the wait.
+const MAX_ROLL_STEPS = 14;
+
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let snapshot = null;
@@ -78,6 +86,16 @@ class Cell {
     this.running = true;
 
     if (delay) await sleep(delay);
+
+    // Distance forward around the drum, which only turns one way.
+    const distance =
+      (DRUM_INDEX.get(this.queue) - DRUM_INDEX.get(this.current) + DRUM.length)
+      % DRUM.length;
+    if (distance > MAX_ROLL_STEPS) {
+      const start =
+        (DRUM_INDEX.get(this.queue) - MAX_ROLL_STEPS + DRUM.length) % DRUM.length;
+      this.paint(DRUM[start]);
+    }
 
     let guard = DRUM.length + 1;
     while (this.queue !== this.current && guard-- > 0) {
@@ -380,7 +398,15 @@ function buildRow(entry) {
 
 function render(data) {
   const grid = document.getElementById('rows');
-  const entries = rows(data);
+  const all = rows(data);
+
+  // Trimmed before anything is built, so the cost is in what is shown rather
+  // than in what is created and hidden.
+  const limit = Math.max(1, Math.round(parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--max-rows')
+  ) || 12));
+  const entries = all.slice(0, limit);
+  const overflow = all.length - entries.length;
 
   // A width change alters how many flaps fit, so the rows are rebuilt.
   const width = layout();
@@ -390,7 +416,13 @@ function render(data) {
     built.clear();
   }
 
-  document.getElementById('empty').hidden = entries.length > 0;
+  document.getElementById('empty').hidden = all.length > 0;
+
+  const more = document.getElementById('more');
+  more.hidden = overflow <= 0;
+  more.textContent = overflow > 0
+    ? `+${overflow} more on the grid`
+    : '';
 
   entries.forEach((entry, index) => {
     const key = entry.title.slug;
@@ -406,7 +438,9 @@ function render(data) {
       ? entry.title.series.background
       : 'rgba(244,228,188,0.16)';
 
-    parts.name.set(entry.title.name, index);
+    // The strand is already carried by the colour strip, so the board shows
+    // the film rather than the booking.
+    parts.name.set(entry.title.display_name || entry.title.name, index);
     parts.time.set(timeLabel(entry.showing.showtime), index);
 
     // Two lines, not four — a 34px row has no space for a stack.

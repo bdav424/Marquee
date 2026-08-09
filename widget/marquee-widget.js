@@ -150,7 +150,7 @@ function showingRow(w, { title, showing }, compact) {
   time.textColor = dimmed ? DIM_TEXT : TEXT;
   time.lineLimit = 1;
 
-  const name = row.addText(title.name);
+  const name = row.addText(title.display_name || title.name);
   name.font = Font.systemFont(compact ? 10 : 11);
   name.textColor = dimmed ? DIM_TEXT : TEXT;
   name.lineLimit = 1;

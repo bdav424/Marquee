@@ -98,7 +98,8 @@ class MarqueeWidget : AppWidgetProvider() {
         // pushed when it returns.
         thread {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            var body = fetch()
+            val result = fetch()
+            var body = result.body
             var stale = false
 
             if (body == null) {
@@ -109,22 +110,47 @@ class MarqueeWidget : AppWidgetProvider() {
                 prefs.edit().putString(KEY_LAST_GOOD, body).apply()
             }
 
-            val views = render(context, body, stale)
+            val views = render(context, body, stale, result.problem)
             for (id in widgetIds) manager.updateAppWidget(id, views)
         }
     }
 
-    private fun fetch(): String? = try {
+    /** What went wrong, in the words the person holding the phone needs. */
+    private class Fetched(val body: String?, val problem: String?)
+
+    private fun fetch(): Fetched = try {
         val connection = (URL(BASE_URL + DATA_PATH).openConnection() as HttpURLConnection)
         connection.connectTimeout = 8000
         connection.readTimeout = 8000
         connection.useCaches = false
-        connection.inputStream.bufferedReader().use { it.readText() }
+        val code = connection.responseCode
+        when {
+            code == 404 -> Fetched(null, "Server is up but has no snapshot yet. Run refresh.py.")
+            code >= 400 -> Fetched(null, "Server answered HTTP $code.")
+            else -> Fetched(connection.inputStream.bufferedReader().use { it.readText() }, null)
+        }
+    } catch (e: java.net.ConnectException) {
+        // Overwhelmingly the common case: nothing is listening, because the
+        // Termux server is not running. Saying so beats "cannot reach".
+        Fetched(null, "Nothing is listening on $BASE_URL — is the server running?")
+    } catch (e: java.net.SocketTimeoutException) {
+        Fetched(null, "$BASE_URL timed out.")
+    } catch (e: java.io.IOException) {
+        // Cleartext blocked by the network security config lands here, and it
+        // is invisible otherwise — the host has to be listed in
+        // network_security_config.xml or Android refuses plain HTTP outright.
+        Fetched(null, "Cannot read $BASE_URL: ${e.javaClass.simpleName}. " +
+            "If you changed the host, add it to network_security_config.xml.")
     } catch (e: Exception) {
-        null
+        Fetched(null, "${e.javaClass.simpleName}: ${e.message ?: "no detail"}")
     }
 
-    private fun render(context: Context, body: String?, stale: Boolean): RemoteViews {
+    private fun render(
+        context: Context,
+        body: String?,
+        stale: Boolean,
+        problem: String?
+    ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_marquee)
 
         // Tapping opens the board, which is where a verdict can explain
@@ -141,7 +167,10 @@ class MarqueeWidget : AppWidgetProvider() {
         if (body == null) {
             views.setTextViewText(R.id.stamp, "NO SIGNAL")
             views.setViewVisibility(R.id.empty, View.VISIBLE)
-            views.setTextViewText(R.id.empty, "Cannot reach the box.")
+            // Never just "cannot reach": with no cache to fall back on this
+            // text is the only thing to debug from, and the widget cannot
+            // show a stack trace.
+            views.setTextViewText(R.id.empty, problem ?: "No cached snapshot yet.")
             return views
         }
 

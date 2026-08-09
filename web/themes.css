@@ -1,0 +1,229 @@
+/* Alternate looks for both surfaces.
+ *
+ * Everything here is variable overrides plus a small amount of structural
+ * work, because style.css and board.css already drive their colours from
+ * tokens. A theme that needed to restate layout would be a second stylesheet
+ * to keep in sync, and would drift.
+ *
+ * The default — no data-theme attribute — is the warm illuminated sign. The
+ * others are opt-in and stored per device.
+ */
+
+/* ==========================================================================
+   8-BIT — a console tied to a CRT.
+
+   No pixel font is embedded: a real bitmap face would be a binary blob in a
+   project that otherwise has no dependencies, and a monospace stack with the
+   curves taken out of everything else carries the idea. What sells it is the
+   hard edges, the offset shadows with no blur, and the scanlines.
+   ========================================================================== */
+
+:root[data-theme="8bit"] {
+  --bg: #0B0C1A;
+  --surface: #1A1C3A;
+  --surface-2: #2A2D5A;
+  --edge: #4A4FA0;
+  --text: #FCFCFC;
+  --text-dim: #9BA0D8;
+  --accent: #FCD000;          /* coin yellow */
+  --alert: #E52521;           /* the red every 8-bit palette has */
+  --ok: #00A800;
+  --panel: #1A1C3A;
+
+  --radius: 0;
+  --dim-saturate: 0;          /* a flagged tile drops to greyscale outright */
+  --dim-opacity: 0.4;
+
+  /* The board, rebuilt in the same palette. The sign stops being warm brass
+     and becomes a lit LED matrix. */
+  --face: #101433;
+  --face-hot: #1B2050;
+  --wall: #05060F;
+  --bulb: #FCD000;
+  --flap-lit: #2A2D5A;
+  --flap-lit-edge: #21244A;
+  --flap-ink: #FCFCFC;        /* inverted: light letters on dark tiles */
+  /* Weighted, not switched off. Against a dark tile the dim ink has to stay
+     well clear of the background or a flagged row stops being readable,
+     which is the one thing dimming must never do. */
+  --flap-ink-dim: #8E94D8;
+  --flap-seam: rgba(0,0,0,0.85);
+  --letter-rule: rgba(255,255,255,0.10);
+  --hinge: rgba(0,0,0,0.55);
+  --glow: #FCD000;
+  --ink-soft: rgba(255,255,255,0.62);
+  --ink-faint: rgba(255,255,255,0.40);
+  --wall-ink: rgba(155,160,216,0.72);
+
+  --cell-aspect: 1.5;         /* squarer tiles read more like a tile grid */
+}
+
+/* Nothing in an 8-bit frame buffer has a rounded corner. */
+:root[data-theme="8bit"] * { border-radius: 0 !important; }
+
+:root[data-theme="8bit"] body {
+  font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme="8bit"] h1,
+:root[data-theme="8bit"] .set-label,
+:root[data-theme="8bit"] .card-title {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Blur-free drop shadows: a sprite's shadow is a hard offset copy. */
+:root[data-theme="8bit"] .settings,
+:root[data-theme="8bit"] .market-menu,
+:root[data-theme="8bit"] .withheld,
+:root[data-theme="8bit"] .sheet {
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.6);
+  border-width: 2px;
+}
+
+:root[data-theme="8bit"] .set-level,
+:root[data-theme="8bit"] .set-switch,
+:root[data-theme="8bit"] .set-reset,
+:root[data-theme="8bit"] .legend-btn {
+  border: 2px solid var(--edge);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+
+:root[data-theme="8bit"] .set-level.on,
+:root[data-theme="8bit"] .set-switch.on {
+  border-color: var(--accent);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+
+/* Poster art, resampled the way a console would have to. */
+:root[data-theme="8bit"] .card img,
+:root[data-theme="8bit"] .sheet img {
+  image-rendering: pixelated;
+}
+
+/* Scanlines. Fixed and non-interactive, so it sits over everything without
+   catching a tap. Kept faint — a display you have to squint through is a
+   costume, not a theme. */
+:root[data-theme="8bit"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.16) 0px,
+    rgba(0,0,0,0.16) 1px,
+    transparent 1px,
+    transparent 3px);
+}
+
+/* ==========================================================================
+   PHOSPHOR — a monochrome terminal, which is what a departures board was
+   before it was a webpage.
+   ========================================================================== */
+
+:root[data-theme="phosphor"] {
+  --bg: #04120A;
+  --surface: #08200F;
+  --surface-2: #0C2E16;
+  --edge: #1C5C2E;
+  --text: #6BFF9E;
+  --text-dim: #2E9455;
+  --accent: #B8FF6B;
+  --alert: #FF8A5C;
+  --ok: #6BFF9E;
+  --panel: #08200F;
+
+  --radius: 3px;
+  --dim-saturate: 0.3;
+  --dim-opacity: 0.38;
+
+  --face: #06180C;
+  --face-hot: #0A2612;
+  --wall: #020A05;
+  --bulb: #6BFF9E;
+  --flap-lit: #0C2E16;
+  --flap-lit-edge: #09240F;
+  --flap-ink: #6BFF9E;
+  --flap-ink-dim: #2E7A46;
+  --flap-seam: rgba(0,0,0,0.8);
+  --letter-rule: rgba(107,255,158,0.10);
+  --hinge: rgba(0,0,0,0.5);
+  --glow: #B8FF6B;
+  --ink-soft: rgba(107,255,158,0.62);
+  --ink-faint: rgba(107,255,158,0.38);
+  --wall-ink: rgba(107,255,158,0.55);
+}
+
+:root[data-theme="phosphor"] body {
+  font-family: ui-monospace, SFMono-Regular, Menlo, "Courier New", monospace;
+}
+
+/* The bloom a phosphor tube has and an LCD does not. */
+:root[data-theme="phosphor"] .flap .ink,
+:root[data-theme="phosphor"] h1 {
+  text-shadow: 0 0 6px rgba(107,255,158,0.45);
+}
+
+:root[data-theme="phosphor"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.22) 0px,
+    rgba(0,0,0,0.22) 1px,
+    transparent 1px,
+    transparent 4px);
+}
+
+/* ==========================================================================
+   NEWSPRINT — the listings page in the back of a local paper. The only light
+   theme, and the one to read outdoors.
+   ========================================================================== */
+
+:root[data-theme="newsprint"] {
+  --bg: #F4F1E8;
+  --surface: #FFFDF6;
+  --surface-2: #EAE5D6;
+  --edge: #CFC7B2;
+  --text: #1A1815;
+  --text-dim: #6B6455;
+  --accent: #8C2F1E;          /* the one spot colour a cheap press could run */
+  --alert: #A32718;
+  --ok: #3E6B34;
+  --panel: #FFFDF6;
+
+  --radius: 2px;
+  --dim-saturate: 0.1;
+  --dim-opacity: 0.42;
+
+  --face: #EDE7D6;
+  --face-hot: #F7F2E2;
+  --wall: #D8D2C2;
+  --bulb: #C9A227;
+  --flap-lit: #FFFDF6;
+  --flap-lit-edge: #F0EADA;
+  --flap-ink: #1A1815;
+  --flap-ink-dim: #9A9384;
+  --flap-seam: rgba(26,24,21,0.45);
+  --letter-rule: rgba(26,24,21,0.10);
+  --hinge: rgba(26,24,21,0.28);
+  --glow: #8C2F1E;
+  --ink-soft: rgba(26,24,21,0.66);
+  --ink-faint: rgba(26,24,21,0.44);
+  --wall-ink: rgba(26,24,21,0.62);
+}
+
+:root[data-theme="newsprint"] body {
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+}
+
+:root[data-theme="newsprint"] h1 {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}

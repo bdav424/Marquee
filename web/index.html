@@ -9,7 +9,13 @@
 <meta name="apple-mobile-web-app-title" content="Winchester">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Winchester Marquee</title>
+<script>
+/* Applied before first paint: loading the default and swapping is a flash. */
+(function(){try{var t=localStorage.getItem('marquee.theme');
+if(t&&t!=='marquee')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="themes.css">
 </head>
 <body>
 
@@ -60,6 +66,7 @@
   <div id="sheet-body" class="sheet-body"></div>
 </aside>
 
+<script src="theme.js"></script>
 <script src="verdict.js"></script>
 <script src="settings.js"></script>
 <script src="market.js"></script>

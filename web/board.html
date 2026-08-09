@@ -8,7 +8,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Winchester Marquee — Board</title>
 <link rel="manifest" href="manifest.webmanifest">
+<script>
+/* Applied before first paint: loading the default and swapping is a flash. */
+(function(){try{var t=localStorage.getItem('marquee.theme');
+if(t&&t!=='marquee')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
 <link rel="stylesheet" href="board.css">
+<link rel="stylesheet" href="themes.css">
 </head>
 <body>
 
@@ -39,6 +45,7 @@
 
 <a class="viewswap" href="index.html">GRID →</a>
 
+<script src="theme.js"></script>
 <script src="verdict.js"></script>
 <script src="market.js"></script>
 <script src="board.js"></script>

@@ -129,6 +129,11 @@
       v => { prefs.mode = v ? 'hide' : 'dim'; },
       rerender));
 
+    host.appendChild(el('hr', 'set-rule'));
+    host.appendChild(el('span', 'set-label', 'Theme'));
+    // Repaints on change so the picker's own highlight follows the choice.
+    host.appendChild(Theme.picker(() => mountBody(host, prefs, apply)));
+
     const reset = el('button', 'set-reset', 'Reset to defaults');
     reset.type = 'button';
     reset.disabled = Verdict.isDefault(prefs);

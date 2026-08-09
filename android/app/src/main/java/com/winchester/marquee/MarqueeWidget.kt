@@ -162,6 +162,17 @@ class MarqueeWidget : AppWidgetProvider() {
         )
         views.setOnClickPendingIntent(R.id.widget_root, open)
 
+        // Tapping the timestamp retries now. Without this the widget is stuck
+        // with whatever it last saw until the 30-minute update period comes
+        // round, which is a long time to stare at NO SIGNAL after starting
+        // the server.
+        val retry = PendingIntent.getBroadcast(
+            context, 1,
+            Intent(context, MarqueeWidget::class.java).setAction(ACTION_REFRESH),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        views.setOnClickPendingIntent(R.id.stamp, retry)
+
         for (id in ROW_IDS) views.setViewVisibility(id, View.GONE)
 
         if (body == null) {
@@ -170,7 +181,9 @@ class MarqueeWidget : AppWidgetProvider() {
             // Never just "cannot reach": with no cache to fall back on this
             // text is the only thing to debug from, and the widget cannot
             // show a stack trace.
-            views.setTextViewText(R.id.empty, problem ?: "No cached snapshot yet.")
+            views.setTextViewText(
+                R.id.empty,
+                (problem ?: "No cached snapshot yet.") + "\n\nTap the top right to retry.")
             return views
         }
 

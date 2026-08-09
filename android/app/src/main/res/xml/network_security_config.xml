@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The marquee serves over plain HTTP, so cleartext has to be permitted —
-     but only for the hosts it is actually served from, never app-wide.
+<!-- The marquee is served over plain HTTP, so cleartext has to be permitted.
 
-     Loopback covers the usual setup, where Termux on this same phone runs the
-     fetcher and the server. winchester.local covers a separate box on the
-     LAN. Add your own hostname here if it is named something else; a literal
-     IP works, a CIDR range does not — Android matches domains, not subnets. -->
+     This was previously scoped to a <domain> list, which failed: domain
+     entries match hostnames, and an IP literal like 127.0.0.1 does not
+     reliably match one. The platform refused the request before it reached a
+     socket, so the widget reported "cannot reach the box" while a browser on
+     the same phone loaded the same URL without trouble — the browser is a
+     different app with its own policy.
+
+     So the base config permits cleartext instead. That is a wider grant than
+     a host list, and it is the right trade here: this app makes exactly one
+     request, to a URL its owner sets, against a server on their own phone or
+     LAN. There is no third-party traffic to protect, and the alternative is a
+     widget that silently dies whenever someone edits BASE_URL. -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">127.0.0.1</domain>
-        <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="true">winchester.local</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

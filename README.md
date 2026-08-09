@@ -13,7 +13,7 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 | 2 — TMDB enrichment | **Running.** Runtime, genres, synopsis, cached posters. |
 | 3 — Content severity parser | **Built, tested and fed.** Input is a hand-kept book — see below. |
 | 3b — Series/event treatments | **Built and tested.** Reconciling against the real feed. |
-| 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets. |
+| 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets, 4 themes. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
 The pipeline runs end to end against real Winchester data. 174 tests.

@@ -47,6 +47,8 @@ object SignRenderer {
     private const val SEAM = 0x4214100A
     private const val GLOW = 0xFFB8600C.toInt()
     private const val BULB_HALO = 0x33FFD98A
+    private const val HEADER = 0x18000000        // the band behind the name
+    private const val RULE = 0x3317130C          // and the line under it
 
     /**
      * Chase circuits. Lamp n is wired to channel n % CHANNELS, and one channel
@@ -60,7 +62,7 @@ object SignRenderer {
      * Below this a marquee is showing initials, which is not a glance at
      * anything.
      */
-    private const val MIN_CHARS = 16
+    private const val MIN_CHARS = 15
 
     /** Lamp frames are drawn at this fraction of the sign, then scaled up. */
     private const val LAMP_SCALE = 0.28f
@@ -145,23 +147,44 @@ object SignRenderer {
 
         drawBulbs(canvas, paint, body, bulbLane, dp(2.1f), dp(11f))
 
-        // --- masthead ------------------------------------------------------
+        // --- header band ---------------------------------------------------
+        // A fixed 11dp masthead was a caption on a sign, not a sign's name.
+        // The band scales with the object so it reads as the theatre's board
+        // at any size the widget is dragged to.
         val pad = dp(8f)
-        var y = face.top + pad
-        paint.typeface = mono
-        paint.textSize = dp(11f)
-        paint.color = INK
-        paint.textAlign = Paint.Align.LEFT
-        val mastBase = y - paint.fontMetrics.ascent
-        canvas.drawText(masthead, face.left + pad, mastBase, paint)
+        val headerH = (face.width() * 0.11f).coerceIn(dp(20f), dp(46f))
+        val header = RectF(face.left, face.top, face.right, face.top + headerH)
 
-        paint.textSize = dp(8f)
+        paint.color = HEADER
+        canvas.drawRect(header, paint)
+        paint.color = RULE
+        paint.strokeWidth = max(density, 1f)
+        canvas.drawLine(header.left + pad, header.bottom,
+                        header.right - pad, header.bottom, paint)
+
+        paint.typeface = mono
+        paint.textAlign = Paint.Align.LEFT
+        paint.textSize = headerH * 0.44f
+        paint.color = INK
+        val nameBase = header.centerY() - (paint.descent() + paint.ascent()) / 2f
+        canvas.drawText(masthead, face.left + pad, nameBase, paint)
+        val nameWidth = paint.measureText(masthead)
+
+        // "NOW PLAYING" only when there is room for it beside the name, so a
+        // narrow widget keeps the theatre rather than the caption.
+        paint.textSize = headerH * 0.2f
+        val kicker = "NOW PLAYING"
+        paint.color = INK_SOFT
+        if (nameWidth + paint.measureText(kicker) + pad * 3 < face.width() * 0.72f) {
+            canvas.drawText(kicker, face.left + pad * 2 + nameWidth, nameBase, paint)
+        }
+
         paint.color = if (stale) GLOW else INK_SOFT
         paint.textAlign = Paint.Align.RIGHT
-        canvas.drawText(stamp, face.right - pad, mastBase, paint)
+        canvas.drawText(stamp, face.right - pad, nameBase, paint)
         paint.textAlign = Paint.Align.LEFT
 
-        y = mastBase + dp(6f)
+        var y = header.bottom + dp(5f)
 
         // --- a message instead of rows -------------------------------------
         if (message != null) {
@@ -205,17 +228,47 @@ object SignRenderer {
         // one more, and MIN_CHARS flaps at 0.52 each.
         val cellGap = max(dp(0.6f), 1f)
         val perChar = 0.6f * 0.62f         // monospace advance, as a fraction
-        val widthUnits = 12f * perChar + perChar + MIN_CHARS * 0.52f
+        // Eight characters of time, not twelve: "TODAY " is gone from most
+        // rows, and budgeting for the longest possible label on every row
+        // would spend the saving on nothing.
+        val widthUnits = 8f * perChar + perChar + MIN_CHARS * 0.52f
         val widthCap =
             (face.width() - 3 * dp(6f) - MIN_CHARS * cellGap) / widthUnits
         cellH = min(cellH, max(widthCap, minH))
 
         val cellW = cellH * 0.52f          // a flap is taller than it is wide
 
+        // Whatever height is left over goes into the gaps rather than into
+        // taller cells: the cell is already as large as the width allows, so
+        // growing it further would only take characters off the titles. The
+        // rows spread down the sign instead of stacking at the top with a
+        // void beneath them.
+        val spread = if (visible > 1) {
+            ((available - visible * cellH) / (visible - 1))
+                .coerceIn(rowGap, cellH * 0.8f)
+        } else rowGap
+
+        // One flap field for the whole board, not one per row. Sized to the
+        // widest time label present, so the runs end on a straight edge and
+        // the markers line up in a column — which is what a board looks like.
+        // Per-row widths left a ragged right edge that read as a mistake.
+        val rowPad = dp(6f)
+        paint.typeface = mono
+        paint.textSize = cellH * 0.62f
+        var timeCol = 0f
+        for (i in 0 until visible) {
+            val r = rows[i]
+            val label = if (r.day.isEmpty()) r.time else "${r.day} ${r.time}"
+            timeCol = max(timeCol, paint.measureText(label))
+        }
+        val markerCol = paint.measureText("?") + rowPad * 0.7f
+        val flapRight = face.right - rowPad - timeCol - rowPad - markerCol
+
         for (i in 0 until visible) {
             val row = rows[i]
-            val top = y + i * (cellH + rowGap)
-            drawRow(canvas, paint, face, row, top, cellH, cellW, cellGap, dp(6f), density)
+            val top = y + i * (cellH + spread)
+            drawRow(canvas, paint, face, row, top, cellH, cellW, cellGap,
+                    rowPad, flapRight, timeCol)
         }
         return bitmap
     }
@@ -231,32 +284,30 @@ object SignRenderer {
         cellW: Float,
         cellGap: Float,
         pad: Float,
-        density: Float
+        flapRight: Float,
+        timeCol: Float
     ) {
         val ink = if (row.flagged) INK_DIM else INK
 
         // The time is plain text, not flaps — it is a label on the board, and
-        // flapping it would cost eight cells the title needs more.
+        // flapping it would cost cells the title needs more.
         paint.typeface = mono
         paint.textSize = cellH * 0.62f
         paint.color = ink
         paint.textAlign = Paint.Align.RIGHT
         val base = top + cellH - (cellH - paint.textSize) / 2 - paint.descent() * 0.6f
-        val timeText = "${row.day} ${row.time}"
+        val timeText = if (row.day.isEmpty()) row.time else "${row.day} ${row.time}"
         canvas.drawText(timeText, face.right - pad, base, paint)
-        val timeW = paint.measureText(timeText)
 
-        // The unknown marker sits between title and time and is drawn before
-        // the title is measured, so it can never be squeezed out by a long
-        // name. Truncating it would make an unreadable rating look clean.
-        var rightEdge = face.right - pad - timeW - pad
+        // The marker has a column of its own between the flaps and the times,
+        // so it can never be squeezed out by a long name. Truncating it would
+        // make an unreadable rating look clean.
         if (row.unknown) {
             paint.color = GLOW
-            canvas.drawText("?", rightEdge, base, paint)
-            rightEdge -= paint.measureText("?") + pad * 0.7f
+            canvas.drawText("?", face.right - pad - timeCol - pad, base, paint)
         }
 
-        val runWidth = rightEdge - (face.left + pad)
+        val runWidth = flapRight - (face.left + pad)
         if (runWidth <= cellW) return
         val cells = floor((runWidth + cellGap) / (cellW + cellGap)).toInt()
         if (cells <= 0) return
@@ -273,7 +324,9 @@ object SignRenderer {
             paint.shader = LinearGradient(
                 0f, cell.top, 0f, cell.bottom, FLAP, FLAP_EDGE, Shader.TileMode.CLAMP
             )
-            canvas.drawRoundRect(cell, density, density, paint)
+            // Square, near enough. The web board's flaps are hard-cornered
+            // on purpose; a hairline radius just takes the aliasing off.
+            canvas.drawRoundRect(cell, 1f, 1f, paint)
             paint.shader = null
 
             // The hinge across the middle: the thing that makes it a flap

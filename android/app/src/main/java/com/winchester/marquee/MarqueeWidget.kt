@@ -253,9 +253,13 @@ class MarqueeWidget : AppWidgetProvider() {
             ?: options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
                 .takeIf { it > 0 }
             ?: FALLBACK_H_DP
-        // A last guard on a launcher that reports something absurd either
-        // way. A marquee outside these proportions is not a marquee.
-        val hDp = rawH.coerceIn((wDp * 0.25f).toInt(), (wDp * 2.0f).toInt())
+        // Neither MIN_HEIGHT nor MAX_HEIGHT is trustworthy on every launcher
+        // — this phone over-reports both, by around a factor of two even
+        // after the first fix. So the clamp does the real work: a marquee is
+        // a wide object, and refusing to believe in one much taller than it
+        // is wide costs a little accuracy on an unusual widget and prevents
+        // the sign being drawn at twice its height on an ordinary one.
+        val hDp = rawH.coerceIn((wDp * 0.3f).toInt(), (wDp * 1.3f).toInt())
         // Drawn smaller than the widget and scaled up by the ImageView. At
         // native resolution the bitmaps exceeded the RemoteViews transaction
         // limit, and an oversized update is dropped whole — the widget went
@@ -389,11 +393,18 @@ class MarqueeWidget : AppWidgetProvider() {
         return rows
     }
 
+    /**
+     * The day, or nothing at all when it is today.
+     *
+     * "TODAY" on nine rows out of twelve is six characters of nothing, and
+     * every one of them is a flap the title does not get. Today is the
+     * default a board is read against; the days worth naming are the others.
+     */
     private fun dayLabel(at: OffsetDateTime): String {
         val today = ZonedDateTime.now().toLocalDate()
         val date = at.toLocalDate()
         return when (date) {
-            today -> "TODAY"
+            today -> ""
             today.plusDays(1) -> "TMRW"
             else -> date.dayOfWeek
                 .getDisplayName(java.time.format.TextStyle.SHORT, Locale.US)

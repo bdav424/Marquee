@@ -8,8 +8,9 @@ but nothing here assumes a field the real payload does not have.
 """
 
 import unittest
-from datetime import timezone
+from datetime import timedelta, timezone
 
+from marquee.adapters import alamo
 from marquee.adapters.alamo import DiscoveryPending, to_titles
 
 PAYLOAD = {
@@ -163,6 +164,66 @@ class TestShowtimes(unittest.TestCase):
         # 00:15 UTC on the 30th is 20:15 EDT on the 29th.
         s = titles()["spider-man-brand-new-day"].showings[1]
         self.assertEqual((s.showtime.day, s.showtime.hour), (29, 20))
+
+
+class TestShowtimeOffsets(unittest.TestCase):
+    """The offset is read off the feed, not looked up in a tz database."""
+
+    @staticmethod
+    def _session(clt, utc, **kw):
+        return dict({"sessionId": 1, "showTimeClt": clt, "showTimeUtc": utc,
+                     "cinemaTimeZoneName": "America/New_York"}, **kw)
+
+    def test_offset_comes_from_the_clt_utc_pair(self):
+        dt = alamo._showtime(self._session("2026-08-29T13:00:00",
+                                           "2026-08-29T17:00:00"))
+        self.assertEqual(dt.utcoffset(), timedelta(hours=-4))
+        self.assertEqual(dt.hour, 13)
+
+    def test_daylight_saving_is_handled_per_session(self):
+        # Each session carries whatever offset applied on its own date, so
+        # winter and summer come out right without any zone rules.
+        winter = alamo._showtime(self._session("2026-12-05T19:30:00",
+                                               "2026-12-06T00:30:00"))
+        self.assertEqual(winter.utcoffset(), timedelta(hours=-5))
+
+    def test_works_with_no_timezone_database_present(self):
+        # Termux ships neither the IANA database nor the tzdata package, and
+        # ZoneInfo raising there used to abort the whole fetch.
+        original = alamo.ZoneInfo
+        alamo.ZoneInfo = lambda key: (_ for _ in ()).throw(KeyError(key))
+        try:
+            dt = alamo._showtime(self._session("2026-08-29T13:00:00",
+                                               "2026-08-29T17:00:00"))
+            self.assertEqual(dt.utcoffset(), timedelta(hours=-4))
+        finally:
+            alamo.ZoneInfo = original
+
+    def test_a_whole_payload_maps_without_a_timezone_database(self):
+        original = alamo.ZoneInfo
+        alamo.ZoneInfo = lambda key: (_ for _ in ()).throw(KeyError(key))
+        try:
+            self.assertEqual(len(to_titles(PAYLOAD)), 2)
+        finally:
+            alamo.ZoneInfo = original
+
+    def test_seconds_of_offset_are_rounded_away(self):
+        dt = alamo._showtime(self._session("2026-08-29T13:00:11",
+                                           "2026-08-29T17:00:00"))
+        self.assertEqual(dt.utcoffset().total_seconds() % 60, 0)
+
+    def test_utc_alone_still_yields_an_aware_instant(self):
+        dt = alamo._showtime({"sessionId": 2, "showTimeUtc": "2026-08-29T17:00:00"})
+        self.assertIsNotNone(dt.tzinfo)
+        self.assertEqual(dt.astimezone(timezone.utc).hour, 17)
+
+    def test_local_alone_still_yields_an_aware_instant(self):
+        dt = alamo._showtime({"sessionId": 3, "showTimeClt": "2026-08-29T13:00:00"})
+        self.assertIsNotNone(dt.tzinfo)
+
+    def test_neither_timestamp_raises(self):
+        with self.assertRaises(DiscoveryPending):
+            alamo._showtime({"sessionId": 4})
 
 
 class TestSessionDetail(unittest.TestCase):

@@ -292,6 +292,51 @@ class ReasonCache:
         tmp.replace(self.path)
 
 
+def inspect(title: str) -> None:
+    """Report how the search page actually accepts a query.
+
+    Two different queries came back within a byte of each other, which means
+    filmTitle in the query string is being ignored and the page returned is a
+    generic one. This prints what the page does with a query so the real
+    mechanism can be used instead of guessed at.
+    """
+    wanted = strip_decoration(title)
+    url = SEARCH_CANDIDATES[0].format(q=urllib.parse.quote(wanted))
+    body = fetch(url)
+
+    print(f"# query   : {wanted!r}")
+    print(f"# url     : {url}")
+    print(f"# bytes   : {len(body)}")
+    print(f"# echoed  : {wanted.lower() in body.lower()}   "
+          "(is our query anywhere in the response?)\n")
+
+    forms = re.findall(r"<form[^>]*>", body, re.I)
+    print(f"## forms ({len(forms)})\n")
+    for form in forms[:6]:
+        print("  " + " ".join(form.split())[:220])
+
+    fields = re.findall(
+        r"<(?:input|select|textarea)[^>]*?name=[\"']([^\"']+)[\"'][^>]*>", body, re.I
+    )
+    print(f"\n## field names ({len(fields)})\n")
+    for name in dict.fromkeys(fields):
+        print("  " + name)
+
+    paths = set(re.findall(r"[\"'](/[A-Za-z0-9/_.\-]{3,60})[\"']", body))
+    interesting = sorted(
+        p for p in paths
+        if any(k in p.lower() for k in ("search", "api", "rating", "title", "film"))
+    )
+    print(f"\n## paths that look like search or data ({len(interesting)})\n")
+    for path in interesting[:30]:
+        print("  " + path)
+
+    token = re.search(r"__RequestVerificationToken", body)
+    print(f"\n## ASP.NET antiforgery token present: {bool(token)}")
+    if token:
+        print("   A POST with that token is likely how search submits.")
+
+
 def discover(title: str) -> None:
     """Probe every candidate and report what came back. Run this first."""
     query = urllib.parse.quote(strip_decoration(title))
@@ -334,5 +379,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 2 and sys.argv[1] == "discover":
         discover(" ".join(sys.argv[2:]))
+    elif len(sys.argv) > 2 and sys.argv[1] == "inspect":
+        inspect(" ".join(sys.argv[2:]))
     else:
         print(__doc__)

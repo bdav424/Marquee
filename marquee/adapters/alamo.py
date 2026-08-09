@@ -29,7 +29,7 @@ import re
 import urllib.error
 import urllib.request
 import zlib
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -289,26 +289,60 @@ def _index(items: Any, key: str = "slug") -> dict:
 PLAIN_AGE_POLICY = re.compile(r"^rated-(g|pg|pg-13|r|nc-17)(-standard)?$", re.I)
 
 
+def _zone(tzname: str):
+    """ZoneInfo for a name, or None where no tz database is installed.
+
+    Termux ships no IANA database and no tzdata package, so ZoneInfo raises
+    there. That must not take the whole cycle down — the offset is
+    recoverable from the feed without it.
+    """
+    try:
+        return ZoneInfo(tzname)
+    except Exception:
+        return None
+
+
 def _showtime(session: dict) -> datetime:
     """Cinema-local aware datetime for a session.
 
-    showTimeUtc is naive-but-UTC; showTimeClt is naive-but-local. Preferring
-    UTC and converting to the cinema's own zone keeps the display correct even
-    if the box serving it sits in a different timezone than the theater.
-    """
-    tzname = session.get("cinemaTimeZoneName") or "America/New_York"
-    zone = ZoneInfo(tzname)
+    The feed gives the same instant twice: showTimeClt naive-but-local and
+    showTimeUtc naive-but-UTC. Their difference IS the cinema's offset for
+    that session, so the offset is read off the data rather than looked up.
 
-    utc = session.get("showTimeUtc")
-    if utc:
-        parsed = datetime.fromisoformat(utc)
+    That matters for more than tidiness. A tz database is not always present —
+    Termux has none — and ZoneInfo("America/New_York") raising there used to
+    abort the entire fetch. It also handles daylight saving for free, since
+    each session carries whatever offset applied on its own date.
+    """
+    local_raw = session.get("showTimeClt")
+    utc_raw = session.get("showTimeUtc")
+
+    if local_raw and utc_raw:
+        local = datetime.fromisoformat(local_raw).replace(tzinfo=None)
+        utc = datetime.fromisoformat(utc_raw).replace(tzinfo=None)
+        # Rounded to the minute: no real zone is offset by seconds, and the
+        # feed has been seen to carry them.
+        offset = timedelta(minutes=round((local - utc).total_seconds() / 60))
+        return local.replace(tzinfo=timezone(offset))
+
+    tzname = session.get("cinemaTimeZoneName") or "America/New_York"
+    zone = _zone(tzname)
+
+    if utc_raw:
+        parsed = datetime.fromisoformat(utc_raw)
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
-        return parsed.astimezone(zone)
+        # Without a tz database the instant is still right; only the label it
+        # is rendered under changes, and the display localises anyway.
+        return parsed.astimezone(zone) if zone else parsed
 
-    local = session.get("showTimeClt")
-    if local:
-        return datetime.fromisoformat(local).replace(tzinfo=zone)
+    if local_raw:
+        parsed = datetime.fromisoformat(local_raw)
+        if zone:
+            return parsed.replace(tzinfo=zone)
+        # Last resort: no offset available from anywhere. Read the wall time
+        # as the box's own, which is right when the box sits at the cinema.
+        return parsed.astimezone()
 
     raise DiscoveryPending(
         f"session {session.get('sessionId')} carries neither showTimeUtc nor "

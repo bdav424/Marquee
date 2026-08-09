@@ -1,0 +1,27 @@
+# Which Alamo markets to build a board for.
+#
+# This project is one theatre's marquee, and the default is the one it was
+# built for. But the market slug is the only thing that varies between
+# locations — same endpoint, same payload shape, same field names — so
+# supporting more costs one HTTP request each and nothing else.
+#
+# Every market listed here gets its own snapshot at web/data/<slug>.json and
+# appears in the page's "Not your theatre?" picker. The default is what loads
+# when nobody has chosen.
+#
+# To find a slug: open drafthouse.com, pick a location, and read it out of the
+# URL — drafthouse.com/raleigh/showtimes is "raleigh". Or run
+#
+#     python3 -m marquee.adapters.alamo markets
+#
+# which lists every slug Alamo's own market endpoint knows about.
+#
+# Keep this list short. Each entry is another fetch every six hours and
+# another board nobody is reading; the point of the picker is a second home
+# or a trip, not a national listings service.
+
+default = "winchester"
+
+[[market]]
+slug = "winchester"
+name = "Winchester, VA"

@@ -8,8 +8,9 @@ Degradation is the whole design here. A failed cycle must never blank the
 wall: the previous snapshot is retained, re-emitted with `stale: true`, and
 the display shows its age in the header. Only a successful fetch replaces it.
 
-    python3 scripts/refresh.py            # one cycle
-    python3 scripts/refresh.py --dry-run  # fetch and report, write nothing
+    python3 scripts/refresh.py                    # every configured market
+    python3 scripts/refresh.py --market raleigh   # just one
+    python3 scripts/refresh.py --dry-run          # fetch, report, write nothing
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 from dataclasses import replace  # noqa: E402
 
+from marquee import markets  # noqa: E402
 from marquee import tmdb  # noqa: E402
 from marquee import reasons as reason_book  # noqa: E402
 from marquee.adapters import alamo, filmratings  # noqa: E402
@@ -36,8 +38,11 @@ from marquee.model import Snapshot, Title  # noqa: E402
 from marquee.series import load_series_config  # noqa: E402
 from marquee.severity import load_config  # noqa: E402
 
-DISPLAY_JSON = ROOT / "web" / "data" / "marquee.json"
-RAW_CACHE = ROOT / "cache" / "last-good.json"
+DATA_DIR = ROOT / "web" / "data"
+# The default market's snapshot, also written here so the widgets and any
+# existing bookmark keep working without knowing that markets exist.
+DISPLAY_JSON = DATA_DIR / "marquee.json"
+MARKET_INDEX = DATA_DIR / "markets.json"
 REASON_CACHE = ROOT / "cache" / "reasons.json"
 NEEDS_REASON = ROOT / "logs" / "needs-reason.txt"
 POSTER_DIR = ROOT / "web" / "posters"
@@ -120,9 +125,12 @@ def enrich(titles: list[Title]) -> list[Title]:
         enriched.append(replace(title, poster=poster, **extra))
 
     kept = {t.poster for t in enriched if t.poster}
-    dropped = prune(POSTER_DIR, kept)
-    log(f"enriched {len(enriched)} titles "
-        f"({failures} tmdb failures, {len(kept)} posters, {dropped} pruned)")
+    log(f"  enriched {len(enriched)} titles "
+        f"({failures} tmdb failures, {len(kept)} posters)")
+    # Pruning deliberately does NOT happen here. With more than one market
+    # configured, dropping everything this market did not reference would
+    # delete the other markets' posters on every cycle. main() prunes once,
+    # against the union.
     return enriched
 
 
@@ -133,7 +141,9 @@ def enrich(titles: list[Title]) -> list[Title]:
 CARA_ENABLED = os.environ.get("MARQUEE_TRY_CARA", "").strip() == "1"
 
 
-def resolve_reasons(titles: list[Title]) -> list[Title]:
+def resolve_reasons(
+    titles: list[Title],
+) -> tuple[list[Title], list[tuple[str, int | None]]]:
     """Attach MPA rating reasons, and report anything still missing one.
 
     Order: the hand-kept book in config/reasons.toml first, then the on-disk
@@ -195,15 +205,12 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
         resolved.append(title)
 
     cache.save()
-    write_needs_reason(missing)
 
-    log(f"reasons: {from_book} from the book, {from_cache} cached, "
+    log(f"  reasons: {from_book} from the book, {from_cache} cached, "
         f"{looked_up} looked up, {errors} errors, "
         f"{len(missing)} needing one, "
         f"{exempted} exempt, {pre_era} pre-descriptor")
-    if missing:
-        log(f"  add them to config/reasons.toml — stub in {NEEDS_REASON.name}")
-    return resolved
+    return resolved, missing
 
 
 def write_needs_reason(missing: list[tuple[str, int | None]]) -> None:
@@ -219,61 +226,147 @@ def write_needs_reason(missing: list[tuple[str, int | None]]) -> None:
     NEEDS_REASON.write_text(reason_book.stub_for(set(missing)))
 
 
-def emit_stale() -> int:
-    """Re-publish the last good snapshot, marked stale. Never blank the screen."""
-    if not DISPLAY_JSON.exists():
-        log("FAILED and no previous snapshot exists — display will show an error.")
-        return 1
-    payload = json.loads(DISPLAY_JSON.read_text())
+def emit_stale(path: Path) -> bool:
+    """Re-publish a market's last good snapshot, marked stale.
+
+    Never blank the screen. Returns whether there was anything to fall back
+    on — a market that has never fetched successfully has nothing to re-serve.
+    """
+    if not path.exists():
+        log(f"  FAILED and no previous snapshot exists — {path.name} will error.")
+        return False
+    payload = json.loads(path.read_text())
     payload["stale"] = True
     payload["generated_at"] = datetime.now().astimezone().isoformat()
-    write_snapshot(payload, DISPLAY_JSON)
-    log(f"serving stale cache from {payload.get('fetched_at')}")
-    return 1
+    write_snapshot(payload, path)
+    log(f"  serving stale cache from {payload.get('fetched_at')}")
+    return True
+
+
+def write_market_index(config: markets.MarketConfig, built: list[str]) -> None:
+    """The list the page's theatre picker reads.
+
+    Only markets that actually have a snapshot on disk are listed. A picker
+    row that leads to a 404 is worse than a picker with one row in it.
+    """
+    entries = [
+        {"slug": m.slug, "name": m.name, "file": markets.snapshot_name(m.slug)}
+        for m in config.markets if m.slug in built
+    ]
+    default = config.default if config.default in built else (
+        entries[0]["slug"] if entries else config.default
+    )
+    write_snapshot({"default": default, "markets": entries}, MARKET_INDEX)
+
+
+def run_market(market: markets.Market, dry_run: bool) -> tuple[bool, set, list]:
+    """One market's full cycle. Returns (ok, posters_kept, reason_gaps)."""
+    out = DATA_DIR / markets.snapshot_name(market.slug)
+    url = alamo.schedule_url(market.slug)
+
+    log(f"{market.slug}: fetching")
+    try:
+        raw = alamo.fetch_json(url)
+        titles = alamo.to_titles(raw)
+        log(f"  fetched {len(titles)} titles from {url}")
+    except alamo.DiscoveryPending as exc:
+        log(f"  SHAPE: {exc}")
+        return emit_stale(out), _existing_posters(out), []
+    except Exception:
+        log("  fetch failed:\n" + traceback.format_exc())
+        return emit_stale(out), _existing_posters(out), []
+
+    titles = enrich(titles)
+    titles, gaps = resolve_reasons(titles)
+    kept = {t.poster for t in titles if t.poster}
+
+    snapshot = Snapshot(
+        # Alamo's own wording for the location, falling back to the configured
+        # name if the feed does not carry one.
+        theater=f"Alamo Drafthouse {alamo.market_name(raw) or market.name}",
+        fetched_at=datetime.now().astimezone(),
+        titles=titles,
+        stale=False,
+    )
+    payload = build_snapshot(snapshot, load_config(), load_series_config())
+    payload["market"] = {"slug": market.slug, "name": market.name}
+    record_parse_failures(payload)
+
+    if dry_run:
+        d = payload["diagnostics"]
+        log(f"  dry run: {d['title_count']} titles, {d['flagged_count']} dimmed "
+            f"(nothing written)")
+        return True, kept, gaps
+
+    write_snapshot(payload, out)
+    log(f"  wrote {payload['diagnostics']['title_count']} titles, "
+        f"{payload['diagnostics']['flagged_count']} dimmed -> {out.name}")
+    return True, kept, gaps
+
+
+def _existing_posters(path: Path) -> set:
+    """Poster paths a stale snapshot still references, so pruning spares them."""
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return set()
+    return {t.get("poster") for t in payload.get("titles", []) if t.get("poster")}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true",
                         help="fetch and report, write nothing")
+    parser.add_argument("--market", action="append", metavar="SLUG",
+                        help="build only this market (repeatable)")
     args = parser.parse_args()
 
-    log("cycle start")
-    try:
-        payload = alamo.fetch_json(alamo.SCHEDULE_URL)
-        titles = alamo.to_titles(payload)
-        log(f"fetched {len(titles)} titles from {alamo.SCHEDULE_URL}")
-    except alamo.DiscoveryPending as exc:
-        log(f"SHAPE: {exc}")
-        return emit_stale()
-    except Exception:
-        log("fetch failed:\n" + traceback.format_exc())
-        return emit_stale()
+    config = markets.load()
+    selected = config.markets
+    if args.market:
+        wanted = {s.strip().lower() for s in args.market}
+        selected = [m for m in config.markets if m.slug in wanted]
+        unknown = wanted - {m.slug for m in selected}
+        if unknown:
+            log(f"not in config/markets.toml: {', '.join(sorted(unknown))}")
+        if not selected:
+            return 1
 
-    titles = enrich(titles)
-    titles = resolve_reasons(titles)
+    log(f"cycle start ({len(selected)} market"
+        f"{'' if len(selected) == 1 else 's'})")
 
-    snapshot = Snapshot(
-        theater="Alamo Drafthouse Winchester",
-        fetched_at=datetime.now().astimezone(),
-        titles=titles,
-        stale=False,
-    )
-    payload = build_snapshot(snapshot, load_config(), load_series_config())
-    record_parse_failures(payload)
+    built: list[str] = []
+    posters: set = set()
+    gaps: list = []
+    for market in selected:
+        ok, kept, market_gaps = run_market(market, args.dry_run)
+        posters |= kept
+        gaps.extend(market_gaps)
+        if ok:
+            built.append(market.slug)
 
     if args.dry_run:
-        d = payload["diagnostics"]
-        log(f"dry run: {d['title_count']} titles, {d['flagged_count']} dimmed "
-            f"(nothing written)")
-        return 0
+        return 0 if built else 1
 
-    write_snapshot(payload, DISPLAY_JSON)
-    RAW_CACHE.parent.mkdir(parents=True, exist_ok=True)
-    write_snapshot(payload, RAW_CACHE)
-    log(f"wrote {payload['diagnostics']['title_count']} titles, "
-        f"{payload['diagnostics']['flagged_count']} dimmed")
-    return 0
+    # One prune, against every market's posters at once.
+    dropped = prune(POSTER_DIR, posters)
+    if dropped:
+        log(f"pruned {dropped} unreferenced posters")
+
+    write_needs_reason(gaps)
+    if gaps:
+        log(f"{len(gaps)} titles need a reason — stub in {NEEDS_REASON.name}")
+
+    # The default market also writes marquee.json, so the widgets and any
+    # existing bookmark keep working without knowing markets exist.
+    default = config.default if config.default in built else (
+        built[0] if built else None)
+    if default:
+        source = DATA_DIR / markets.snapshot_name(default)
+        write_snapshot(json.loads(source.read_text()), DISPLAY_JSON)
+
+    write_market_index(config, built)
+    return 0 if len(built) == len(selected) else 1
 
 
 if __name__ == "__main__":

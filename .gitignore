@@ -5,4 +5,5 @@ logs/
 .env
 web/posters/*
 !web/posters/.gitkeep
-web/data/marquee.json
+# Generated snapshots, one per configured market, plus the index.
+web/data/*.json

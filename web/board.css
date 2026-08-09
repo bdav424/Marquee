@@ -418,3 +418,32 @@ body::before {
   .flip { display: none; }
   .bulb { animation: none; }
 }
+
+/* --- theatre switcher ----------------------------------------------------
+   Sits on the sign's face, under the masthead, in the same ink as the
+   flaps so it reads as part of the object rather than browser chrome. */
+.market { display: flex; align-items: baseline; gap: 8px; margin: -2px 0 6px;
+          position: relative; flex-wrap: wrap; }
+.market-name { font-size: 10px; letter-spacing: 0.08em; color: var(--ink-soft); }
+.market-swap {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; font-size: 9px; letter-spacing: 0.06em; color: var(--ink-soft);
+  text-decoration: underline; text-underline-offset: 2px; opacity: 0.75;
+}
+.market-swap:hover, .market-swap:focus-visible { opacity: 1; }
+.market-menu {
+  position: absolute; top: 100%; left: 0; z-index: 40; margin-top: 6px;
+  min-width: 200px; max-width: min(320px, calc(100vw - 32px));
+  /* Lit, like a flap — a dark menu on the sign's face would read as a hole
+     punched in it, and dark ink on a dark panel would be invisible. */
+  background: var(--flap-lit-edge); border: 1px solid rgba(20,16,10,0.35);
+  border-radius: 8px; padding: 6px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.market-item {
+  display: block; padding: 8px 10px; border-radius: 6px; font-size: 12px;
+  letter-spacing: 0.04em; color: var(--flap-ink); text-decoration: none;
+}
+.market-item:hover { background: rgba(20,16,10,0.09); }
+.market-item.current { color: var(--glow); font-weight: 700; }
+.market-note { margin: 4px 6px 2px; font-size: 10px; line-height: 1.5;
+               color: var(--ink-soft); letter-spacing: 0.02em; }

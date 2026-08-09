@@ -10,7 +10,9 @@
 
 'use strict';
 
-const DATA_URL = 'data/marquee.json';
+// Set once the market index has been read; until then the single-theatre
+// default, which is also what a checkout with no index falls back to.
+let DATA_URL = 'data/marquee.json';
 const MAX_TIMES_ON_CARD = 6;
 
 let snapshot = null;
@@ -314,6 +316,15 @@ function renderFreshness(data) {
 
 async function boot() {
   const grid = document.getElementById('grid');
+
+  const index = await Market.loadIndex();
+  const market = Market.chosen(index);
+  if (market.file) DATA_URL = Market.dataUrl(market);
+  if (market.slug) {
+    document.getElementById('theatre').textContent = market.name.split(',')[0];
+  }
+  Market.mountSwitcher(document.getElementById('market'), index, market);
+
   try {
     const res = await fetch(DATA_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

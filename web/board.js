@@ -11,7 +11,9 @@
 
 'use strict';
 
-const DATA_URL = 'data/marquee.json';
+// Set once the market index has been read; until then the single-theatre
+// default, which is also what a checkout with no index falls back to.
+let DATA_URL = 'data/marquee.json';
 const POLL_MS = 60000;
 
 // The physical drum. Order matters — a flap rolls forward through this list
@@ -473,6 +475,19 @@ function renderStamp(data) {
   node.classList.toggle('stale', !!data.stale);
 }
 
+async function chooseMarket() {
+  const index = await Market.loadIndex();
+  const current = Market.chosen(index);
+  if (current.file) DATA_URL = Market.dataUrl(current);
+  if (current.slug) {
+    // The sign says where it is. A board switched to another city and still
+    // reading WINCHESTER would be quietly lying.
+    document.getElementById('theatre').textContent =
+      current.name.split(',')[0].toUpperCase();
+  }
+  Market.mountSwitcher(document.getElementById('market'), index, current);
+}
+
 async function load() {
   const res = await fetch(DATA_URL, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -501,8 +516,12 @@ async function tick(force) {
   render(data);
 }
 
-tick(true);
-setInterval(() => tick(false), POLL_MS);
+// The market has to be resolved before the first fetch, or the board reads
+// the default city's file and then swaps under the viewer.
+chooseMarket().then(() => {
+  tick(true);
+  setInterval(() => tick(false), POLL_MS);
+});
 
 let resizeTimer;
 addEventListener('resize', () => {

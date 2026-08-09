@@ -61,6 +61,33 @@ API_ROOT = "https://drafthouse.com/s/mother"
 # The schedule endpoint. Confirmed returning JSON for this market.
 SCHEDULE_URL = f"{API_ROOT}/v2/schedule/market/{MARKET_SLUG}"
 
+
+def schedule_url(market: str = MARKET_SLUG) -> str:
+    """The schedule endpoint for any Alamo market.
+
+    The market slug is the only thing that varies between locations — the
+    payload shape, the join key and every field name are identical, so
+    to_titles() needs no changes to read a different city.
+    """
+    return f"{API_ROOT}/v2/schedule/market/{market}"
+
+
+def market_name(payload: Any) -> str | None:
+    """The market's display name, as Alamo spells it.
+
+    Better than a title-cased slug: the feed says "Winchester, VA" where the
+    slug only says "winchester", and it is the theatre's own wording.
+    """
+    if not isinstance(payload, dict):
+        return None
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return None
+    for entry in data.get("market") or []:
+        if isinstance(entry, dict) and entry.get("name"):
+            return str(entry["name"])
+    return None
+
 # Tried in order.
 CANDIDATE_URLS = [SCHEDULE_URL]
 

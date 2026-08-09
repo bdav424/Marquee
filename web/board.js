@@ -219,16 +219,27 @@ function rows(data) {
  * than rotating. Three is the documented minimum for a stable sense of
  * motion, which is why the previous alternation never looked circular.
  */
-const BULB_CHANNELS = 3;      // circuits on the drum
-const BULB_ON_CHANNELS = 2;   // how many are energised at once
 const BULB_PERIOD_MS = 1100;  // one full revolution of the drum
-const BULB_SPACING = 11;
 const BULB_INSET = 11;
+
+/* Wiring comes from CSS so it can be retuned in one place, and read fresh
+   each time so a change takes effect on the next relayout. */
+function chaserWiring() {
+  const cs = getComputedStyle(document.documentElement);
+  const num = (name, fallback) =>
+    parseFloat(cs.getPropertyValue(name)) || fallback;
+  const channels = Math.max(3, Math.round(num('--bulb-channels', 3)));
+  return {
+    channels,
+    on: Math.min(channels - 1, Math.max(1, Math.round(num('--bulb-on', 1)))),
+    spacing: num('--bulb-spacing', 8),
+  };
+}
 
 /* Keyframes are generated so the lit fraction always matches the channel
    wiring above rather than being restated as a percentage by hand. */
-function installChaseKeyframes() {
-  const duty = (BULB_ON_CHANNELS / BULB_CHANNELS) * 100;
+function installChaseKeyframes(wiring) {
+  const duty = (wiring.on / wiring.channels) * 100;
   const style = document.getElementById('chase-keyframes')
     || Object.assign(document.createElement('style'), { id: 'chase-keyframes' });
   style.textContent = `@keyframes commutator {
@@ -266,7 +277,8 @@ function buildBulbs() {
   const h = rect.height - BULB_INSET * 2;
   if (w <= 0 || h <= 0) return;
 
-  installChaseKeyframes();
+  const wiring = chaserWiring();
+  installChaseKeyframes(wiring);
 
   // Lamps are placed by arc length rather than per edge, so spacing is
   // identical the whole way round instead of differing between the long and
@@ -274,8 +286,8 @@ function buildBulbs() {
   // the wiring pattern meets itself cleanly where the loop closes.
   const perimeter = 2 * (w + h);
   const count =
-    Math.max(BULB_CHANNELS,
-      Math.round(perimeter / BULB_SPACING / BULB_CHANNELS) * BULB_CHANNELS);
+    Math.max(wiring.channels,
+      Math.round(perimeter / wiring.spacing / wiring.channels) * wiring.channels);
   const step = perimeter / count;
 
   holder.replaceChildren(...Array.from({ length: count }, (_, i) => {
@@ -285,15 +297,15 @@ function buildBulbs() {
     bulb.style.left = `${x.toFixed(1)}px`;
     bulb.style.top = `${y.toFixed(1)}px`;
     if (!reduceMotion) {
-      const channel = i % BULB_CHANNELS;
+      const channel = i % wiring.channels;
       bulb.style.animationDuration = `${BULB_PERIOD_MS}ms`;
       // Each channel fires a third of a revolution after the one before it.
       // The channel index is reversed so the pattern travels the same way the
       // lamps are numbered — clockwise from the top-left. Using the channel
       // directly ran the chase backwards around the sign.
-      const lag = (BULB_CHANNELS - channel) % BULB_CHANNELS;
+      const lag = (wiring.channels - channel) % wiring.channels;
       bulb.style.animationDelay =
-        `${-(lag * BULB_PERIOD_MS) / BULB_CHANNELS}ms`;
+        `${-(lag * BULB_PERIOD_MS) / wiring.channels}ms`;
     }
     return bulb;
   }));

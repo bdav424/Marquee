@@ -30,6 +30,15 @@
   --cell-aspect: 1.75;
   /* Vertical space between rows, as a fraction of flap height. */
   --row-gap: 0.125;
+
+  /* Marquee chaser wiring. Bulb n sits on channel n % --bulb-channels, and
+     the drum energises --bulb-on channels at a time.
+       3 / 1  the authentic mechanical chaser: one circuit live, 1 lamp in 3
+       3 / 2  brighter, 2 lamps in 3, still directional
+     Two channels cannot show direction at all, so 3 is the floor. */
+  --bulb-channels: 3;
+  --bulb-on: 1;
+  --bulb-spacing: 8px;
 }
 
 * { box-sizing: border-box; }

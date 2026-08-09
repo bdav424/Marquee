@@ -36,8 +36,17 @@ import kotlin.concurrent.thread
 class MarqueeWidget : AppWidgetProvider() {
 
     companion object {
-        /** The box serving web/. Change this to match your network. */
-        const val BASE_URL = "http://winchester.local:8080"
+        /**
+         * Where web/ is being served from.
+         *
+         * Defaults to the phone itself, which is the common setup: Termux
+         * runs the fetcher and a loopback HTTP server, so the widget, the
+         * page and the box are all one device and nothing touches the
+         * network. Point it at a hostname instead if you run the fetcher on
+         * a Pi — and add that hostname to network_security_config.xml, or
+         * Android will refuse the cleartext request.
+         */
+        const val BASE_URL = "http://127.0.0.1:8080"
 
         private const val DATA_PATH = "/data/marquee.json"
         private const val PAGE_PATH = "/board.html"

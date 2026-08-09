@@ -1,0 +1,42 @@
+name: Build widget APK
+
+# The point of this workflow is to hand back an installable APK without
+# anyone needing Android Studio, or indeed a computer. Push, wait, download
+# the artifact on the phone, sideload it.
+#
+# It also compiles android/, which nothing else does — the widget was written
+# without an SDK to hand, so this is the first thing that has ever type-checked
+# it.
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Debug rather than release: a release APK needs a signing key, and an
+      # unsigned one will not install. The debug key is generated locally by
+      # Gradle and is fine for sideloading onto your own phone.
+      - name: Assemble
+        working-directory: android
+        run: gradle --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marquee-widget-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

@@ -1,8 +1,17 @@
 # Deploying the marquee
 
-Target: a small always-on box on the LAN (a Pi is plenty) serving `web/` over
-HTTP, with a cron job refreshing the cache every six hours. The phone talks to
-that box; nothing is exposed to the internet and nothing needs an account.
+Two ways to run this, and the second one is probably what you want.
+
+**On the phone itself**, under Termux. The phone is both the box and the
+display, nothing goes on the network at all, and it works away from home
+because it is not talking to anything. Jump to [On a phone](#on-a-phone).
+
+**On a small always-on box** on the LAN (a Pi is plenty) serving `web/` over
+HTTP, with the phone as a client. Better if you want several devices reading
+the same snapshot, or the phone's battery left alone. That is the rest of this
+section.
+
+Either way nothing is exposed to the internet and nothing needs an account.
 
 ## 1. Put it on the box
 
@@ -82,10 +91,16 @@ then Share > Add to Home Screen. The manifest makes it launch standalone,
 without browser chrome. This is where the full grid and the drill-in panels
 live.
 
-**Widget** — install Scriptable from the App Store, copy
+**Widget (iOS)** — install Scriptable from the App Store, copy
 `widget/marquee-widget.js` into its folder, and set `MARQUEE_URL` at the top of
 the file to your box. Add a Scriptable widget to the home screen and point it
 at the script.
+
+**Widget (Android)** — `android/` holds an AppWidgetProvider that reads the
+same JSON. It has never been compiled: open the directory in Android Studio,
+set `BASE_URL` in `MarqueeWidget.kt`, and build. Until then the home-screen
+shortcut to the page is the Android equivalent, and it loses nothing except
+the glance.
 
 The widget is the glance; tapping it opens the companion page. iOS widgets have
 no in-widget interaction beyond a tap target, so the "why is this dimmed" panel
@@ -112,19 +127,85 @@ treatment. That is the list to extend the config from. A title whose reason
 string cannot be read shows as `unknown` rather than clean, so an empty log is
 the goal.
 
-## Current blocker
+## On a phone
 
-`scripts/refresh.py` will not produce real data yet. `marquee/adapters/alamo.py`
-has its fetch layer written but not its field mapping, because endpoint
-discovery has never run — see the README. On a box with normal outbound access:
+Termux, no root, no server anywhere else. The phone fetches the schedule,
+builds the snapshot and serves it to itself over loopback.
 
 ```
-python3 -m marquee.adapters.alamo discover
+pkg install python git cronie termux-services termux-api
+git clone https://github.com/bdav424/Marquee ~/Marquee
+cd ~/Marquee && python3 -m unittest discover -s tests -t .
 ```
 
-That prints a pretty-printed sample and a field inventory, and reports which of
-the fields the display needs were actually found. Write `to_titles()` against
-that inventory. It is the only function that needs writing — severity, series
-resolution, the build pipeline, the page and the widget are all already written
-against `marquee/model.py` and work unchanged the moment it returns real
-`Title` objects.
+Set the TMDB key so enrichment runs — put it in `~/.bashrc` so cron inherits
+it, or in the crontab line directly:
+
+```
+echo 'export TMDB_API_KEY=your_key_here' >> ~/.bashrc
+```
+
+First snapshot, then serve:
+
+```
+python3 scripts/refresh.py
+cd web && python3 -m http.server 8080 --bind 127.0.0.1
+```
+
+Open `http://localhost:8080` in Chrome, then **⋮ > Add to Home screen**. The
+manifest launches it standalone, so it opens like an app rather than a tab.
+`board.html` is the split-flap sign, `index.html` is the poster grid with the
+drill-in panels; the link in the corner swaps between them.
+
+### Making it survive a reboot
+
+`scripts/termux-boot.sh` takes a wake lock, starts `crond`, runs one refresh
+and starts the server. Install Termux:Boot from F-Droid, **open it once** so
+Android grants it permission, then:
+
+```
+mkdir -p ~/.termux/boot
+cp ~/Marquee/scripts/termux-boot.sh ~/.termux/boot/marquee
+chmod +x ~/.termux/boot/marquee
+```
+
+And the refresh itself:
+
+```
+crontab -e
+17 */6 * * * cd ~/Marquee && python3 scripts/refresh.py >> logs/cron.log 2>&1
+```
+
+Android is aggressive about killing background processes. Exempt Termux from
+battery optimisation in Android settings, or the server will be gone by
+morning and the page will fail to load rather than show stale data.
+
+> The boot script has never been run — it was written without a device. The
+> commands are the documented Termux ones but expect to fix something the
+> first time.
+
+## Day to day
+
+Nothing, most of the time. The cron refreshes every six hours and the page
+reads a local file.
+
+The one recurring task is the reason book. Each cycle writes
+`logs/needs-reason.txt` with a paste-ready block, ordered newest first:
+
+```
+"Mystery Machine" = ""
+"The Odyssey" = ""  # 2026
+"In the Mouth of Madness" = ""  # 1994
+```
+
+Look the top few up at filmratings.com in a browser, paste the sentence
+**verbatim** between the quotes, and drop the block into `config/reasons.toml`
+under `[reasons]`. The parser reads the wording — `strong bloody violence` and
+`some violence` score differently — so paraphrasing changes the verdict.
+
+Stop when the years start looking old. A question mark on a revival screening
+is an honest answer, and pre-1990 films are dropped from the list entirely
+because CARA never wrote a descriptor for them.
+
+Changes take effect on the next refresh; run `python3 scripts/refresh.py` if
+you do not want to wait for the cron.

@@ -99,15 +99,47 @@ def lookup(title: str, overrides: dict[str, str]) -> str | None:
     return overrides.get(normalise(title))
 
 
+# CARA began issuing rating descriptors in 1990. Before that a film carried a
+# certification and nothing else, so there is no sentence to go and find.
+DESCRIPTOR_ERA_BEGINS = 1990
+
+
+def predates_descriptors(release_year: int | None) -> bool:
+    """True when no descriptor can exist for this film, whoever looks.
+
+    Unknown year returns False: absent evidence, the honest assumption is that
+    the sentence exists and simply has not been typed in. Better to ask for
+    work that turns out to be impossible than to quietly write a title off.
+    """
+    return release_year is not None and release_year < DESCRIPTOR_ERA_BEGINS
+
+
 def stub_for(titles) -> str:
-    """A paste-ready TOML block for titles that still have no reason."""
+    """A paste-ready TOML block for titles that still have no reason.
+
+    Ordered newest first. A repertory booking and a first-run release both
+    show a question mark, but only one of them is worth a trip to the browser
+    on a Friday — the new release is what somebody is deciding about tonight.
+    Sorting here means the lines worth doing are the lines at the top.
+
+    Accepts either bare names or (name, release_year) pairs.
+    """
+    pairs = [t if isinstance(t, tuple) else (t, None) for t in titles]
+    # Unknown year sorts with the new releases: an unrecognised title is far
+    # more likely to be something TMDB has not indexed yet than a revival.
+    pairs.sort(key=lambda p: (-(p[1] or 9999), p[0].lower()))
+
     lines = [
         "# Paste into config/reasons.toml under [reasons].",
         "# Look each title up at https://www.filmratings.com in a browser and",
         "# copy the sentence verbatim — the parser reads the wording, so do",
         "# not paraphrase it.",
+        "#",
+        "# Newest first. The top of this list is what is worth your time; a",
+        "# question mark on a revival screening is an honest answer.",
         "",
     ]
-    for name in titles:
-        lines.append(f'"{name}" = ""')
+    for name, year in pairs:
+        stamp = f"  # {year}" if year else ""
+        lines.append(f'"{name}" = ""{stamp}')
     return "\n".join(lines) + "\n"

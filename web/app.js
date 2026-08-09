@@ -232,9 +232,13 @@ function openSheet(title) {
     v.appendChild(ul);
   } else if (unknown) {
     v.appendChild(el('h3', null, 'Not rated by this display'));
+    // Three different question marks, and the difference matters: one is a
+    // parser gap, one is a gap in the book, and one can never be filled.
     v.appendChild(el('p', null, title.rating_reason
       ? 'The rating reason could not be parsed, so severity is unknown — not known to be clean. Shown at full weight rather than guessed at.'
-      : 'No rating reason was published for this title, so severity is unknown — not known to be clean.'));
+      : title.reason_unobtainable
+        ? `Released ${title.release_year}, before the MPA began issuing rating descriptors in 1990. This film carries a certification and nothing else, so there is no reason text to find — the question mark is permanent, not pending.`
+        : 'No rating reason was published for this title, so severity is unknown — not known to be clean.'));
   } else {
     v.appendChild(el('h3', null, 'Under all your thresholds'));
     v.appendChild(el('p', null, 'Nothing here trips a rule you set.'));

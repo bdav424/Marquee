@@ -45,6 +45,7 @@ class Title:
 
     # From TMDB enrichment.
     runtime_minutes: int | None = None
+    release_year: int | None = None
     genres: list[str] = field(default_factory=list)
     synopsis: str | None = None
     poster: str | None = None          # local cached path, never a remote URL

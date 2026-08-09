@@ -18,6 +18,7 @@ from pathlib import Path
 
 from marquee.adapters.filmratings import strip_decoration
 from marquee.model import Snapshot, Title
+from marquee.reasons import predates_descriptors
 from marquee.series import SeriesConfig, resolve
 from marquee.severity import Config, evaluate, parse
 
@@ -52,6 +53,10 @@ def build_title(
         # Verbatim, for the drill-in panel. Never paraphrased.
         "rating_reason": title.mpa_reason,
         "runtime_minutes": title.runtime_minutes,
+        "release_year": title.release_year,
+        # A question mark on a pre-1990 film is permanent, not a backlog item:
+        # CARA did not issue descriptors then. The panel says which it is.
+        "reason_unobtainable": predates_descriptors(title.release_year),
         "genres": title.genres,
         "synopsis": title.synopsis,
         "poster": title.poster,

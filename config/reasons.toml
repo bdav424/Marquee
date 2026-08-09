@@ -30,8 +30,13 @@
 # a certification and nothing else — there is no sentence to find. Listing a
 # title here keeps it `unknown`, which is honest since we genuinely do not know
 # what is in it, but stops it appearing in needs-reason.txt as work that can
-# never be done. Also use it for festivals, live broadcasts and anything never
-# submitted for a rating.
+# never be done.
+#
+# Pre-1990 films no longer need listing: TMDB supplies a release year and
+# refresh.py drops anything older than 1990 from the queue by itself. The
+# entries below are kept as a fallback for titles TMDB cannot identify. What
+# this list is still genuinely for is modern titles that were never submitted
+# for a rating at all — festivals, live broadcasts, one-off events.
 
 no_descriptor = [
   # Seen on the live Winchester schedule: pre-1990, or never rated.

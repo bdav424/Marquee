@@ -79,6 +79,19 @@ def us_certification(release_dates: dict) -> str | None:
     return None
 
 
+def _year(release_date: str | None) -> int | None:
+    """The release year, from TMDB's "YYYY-MM-DD". Absent or malformed -> None.
+
+    Worth having for one reason: MPA rating descriptors only began in 1990, so
+    the year is what separates "nobody has typed this reason in yet" from
+    "this sentence was never written and never will be".
+    """
+    try:
+        return int((release_date or "")[:4])
+    except ValueError:
+        return None
+
+
 def enrich(tmdb_id: int) -> dict:
     """Everything the display needs about one film, in a single call."""
     data = _get(f"/movie/{tmdb_id}", append_to_response="release_dates")
@@ -88,6 +101,7 @@ def enrich(tmdb_id: int) -> dict:
         "genres": [g["name"] for g in data.get("genres", [])],
         "synopsis": (data.get("overview") or "").strip() or None,
         "certification": us_certification(data.get("release_dates", {})),
+        "release_year": _year(data.get("release_date")),
         "poster_path": data.get("poster_path"),
         # Deliberately absent: any claim to a rating *reason*. TMDB does not
         # carry one, and inventing a fallback here would quietly defeat the

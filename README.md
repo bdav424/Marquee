@@ -16,7 +16,7 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 | 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-The pipeline runs end to end against real Winchester data. 165 tests.
+The pipeline runs end to end against real Winchester data. 174 tests.
 
 Latest cycle on the box: 32 titles fetched, 32 posters cached, 0 TMDB
 failures, 2 dimmed. 26 titles are waiting on a rating reason and show `?`.
@@ -87,6 +87,19 @@ runs about ten films at a time, a reason never changes once CARA assigns it,
 and each cycle writes `logs/needs-reason.txt` with a ready-to-paste stub for
 anything still missing. Copy the sentence verbatim — the parser reads the
 wording, so `strong bloody violence` and `some violence` score differently.
+
+Two things keep that queue short. **Pre-1990 films are dropped from it
+automatically**: CARA only began issuing descriptors in 1990, so a revival
+screening of a 1976 film has no sentence to find and asking for one is asking
+for work that cannot be done. TMDB supplies the release year on a call the
+enricher already makes, so this costs nothing. And **the stub is ordered
+newest first**, because a first-run release is what somebody is deciding about
+tonight, while a question mark on a repertory booking is a fine answer.
+
+The panel says which kind of question mark it is looking at. "No rating reason
+was published" is a gap somebody can close; "released 1976, before the MPA
+began issuing rating descriptors" is permanent, and saying so is more useful
+than a bare `?`.
 
 Titles match loosely: case, punctuation, leading articles, a trailing year and
 Alamo's programming prefixes are all ignored, so `Terror Tuesday: The Thing`
@@ -265,7 +278,7 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-165 tests: the intensity ladder, clause scoping, longest-match resolution,
+174 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
 retention for series treatments; the payload contract, chronological ordering

@@ -107,6 +107,7 @@ def enrich(titles: list[Title]) -> list[Title]:
                     found = tmdb.enrich(hit["id"])
                     extra = {
                         "runtime_minutes": found["runtime_minutes"],
+                        "release_year": found["release_year"],
                         "genres": found["genres"],
                         "synopsis": found["synopsis"],
                     }
@@ -147,8 +148,8 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
     exempt = reason_book.load_exempt()
     cache = filmratings.ReasonCache(REASON_CACHE)
     resolved = []
-    from_book = from_cache = looked_up = errors = 0
-    missing: list[str] = []
+    from_book = from_cache = looked_up = errors = pre_era = exempted = 0
+    missing: list[tuple[str, int | None]] = []
 
     for title in titles:
         if title.mpa_reason:
@@ -181,9 +182,16 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
                 errors += 1
                 log(f"  cara: {title.name}: {str(exc)[:70]}")
 
-        # A film CARA never described stays unknown, but is not work.
-        if not reason_book.is_exempt(title.name, exempt):
-            missing.append(title.name)
+        # A film CARA never described stays unknown, but it is not work.
+        # Two ways that happens: it is listed in no_descriptor by hand, or it
+        # simply predates the descriptor era, which the release year settles
+        # without anyone having to look anything up.
+        if reason_book.predates_descriptors(title.release_year):
+            pre_era += 1
+        elif reason_book.is_exempt(title.name, exempt):
+            exempted += 1
+        else:
+            missing.append((title.name, title.release_year))
         resolved.append(title)
 
     cache.save()
@@ -191,19 +199,24 @@ def resolve_reasons(titles: list[Title]) -> list[Title]:
 
     log(f"reasons: {from_book} from the book, {from_cache} cached, "
         f"{looked_up} looked up, {errors} errors, "
-        f"{len(missing)} needing one, {len(exempt)} exempt")
+        f"{len(missing)} needing one, "
+        f"{exempted} exempt, {pre_era} pre-descriptor")
     if missing:
         log(f"  add them to config/reasons.toml — stub in {NEEDS_REASON.name}")
     return resolved
 
 
-def write_needs_reason(missing: list[str]) -> None:
-    """Leave a paste-ready block for the titles that still need a reason."""
+def write_needs_reason(missing: list[tuple[str, int | None]]) -> None:
+    """Leave a paste-ready block for the titles that still need a reason.
+
+    stub_for orders it newest first, so the lines worth acting on are the ones
+    at the top of the file.
+    """
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     if not missing:
         NEEDS_REASON.write_text("# Every title has a rating reason.\n")
         return
-    NEEDS_REASON.write_text(reason_book.stub_for(sorted(set(missing))))
+    NEEDS_REASON.write_text(reason_book.stub_for(set(missing)))
 
 
 def emit_stale() -> int:

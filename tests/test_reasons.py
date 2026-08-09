@@ -12,7 +12,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from marquee.reasons import (
-    is_exempt, load, load_exempt, lookup, normalise, stub_for,
+    is_exempt, load, load_exempt, lookup, normalise, predates_descriptors,
+    stub_for,
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
@@ -152,6 +153,48 @@ class TestStub(unittest.TestCase):
     def test_stub_says_not_to_paraphrase(self):
         # The parser reads the wording, so this instruction is load-bearing.
         self.assertIn("verbatim", stub_for(["X"]).lower())
+
+
+class TestDescriptorEra(unittest.TestCase):
+    """Which question marks are work, and which are just true."""
+
+    def test_a_pre_1990_film_can_never_have_a_descriptor(self):
+        self.assertTrue(predates_descriptors(1976))
+
+    def test_1990_itself_is_inside_the_era(self):
+        self.assertFalse(predates_descriptors(1990))
+
+    def test_a_current_release_is_work(self):
+        self.assertFalse(predates_descriptors(2026))
+
+    def test_an_unknown_year_is_assumed_obtainable(self):
+        # Writing a title off on absent evidence is the worse error: it
+        # disappears from the queue and nobody ever notices it was missed.
+        self.assertFalse(predates_descriptors(None))
+
+
+class TestStubOrdering(unittest.TestCase):
+    """New releases are what somebody is deciding about tonight."""
+
+    def test_newest_first(self):
+        out = stub_for([("Old Revival", 1994), ("This Friday", 2026)])
+        self.assertLess(out.index("This Friday"), out.index("Old Revival"))
+
+    def test_the_year_is_shown_so_the_call_is_obvious(self):
+        self.assertIn('"This Friday" = ""  # 2026',
+                      stub_for([("This Friday", 2026)]))
+
+    def test_an_unknown_year_sorts_with_the_new_releases(self):
+        # More likely a title TMDB has not indexed yet than a revival.
+        out = stub_for([("Dated", 2020), ("Unindexed", None)])
+        self.assertLess(out.index("Unindexed"), out.index("Dated"))
+
+    def test_bare_names_are_still_accepted(self):
+        self.assertIn('"Plain" = ""', stub_for(["Plain"]))
+
+    def test_ordering_is_stable_within_a_year(self):
+        out = stub_for([("Beta", 2026), ("Alpha", 2026)])
+        self.assertLess(out.index("Alpha"), out.index("Beta"))
 
 
 class TestShippedFile(unittest.TestCase):

@@ -16,7 +16,7 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 | 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets, 4 themes. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-The pipeline runs end to end against real Winchester data. 174 tests.
+The pipeline runs end to end against real Winchester data. 191 tests.
 
 Latest cycle on the box: 32 titles fetched, 32 posters cached, 0 TMDB
 failures, 2 dimmed. 26 titles are waiting on a rating reason and show `?`.
@@ -306,7 +306,7 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-174 tests: the intensity ladder, clause scoping, longest-match resolution,
+191 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
 retention for series treatments; the payload contract, chronological ordering

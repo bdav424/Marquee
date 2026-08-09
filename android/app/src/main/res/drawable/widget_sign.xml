@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The lit sign face, with the bezel as a stroke. The web board's chasing
+     lamps are deliberately not reproduced: a widget repaints on the host's
+     schedule, not per frame, so an animated border is not available. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/wall" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="@color/face_hot"
+                android:endColor="@color/face" />
+            <corners android:radius="10dp" />
+            <stroke android:width="1dp" android:color="#66000000" />
+        </shape>
+    </item>
+</layer-list>

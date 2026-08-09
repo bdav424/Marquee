@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The marquee box serves over plain HTTP on the LAN. Cleartext is permitted
+     for that hostname only, not opened up across the app. Change the domain
+     if your box is named something else. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">winchester.local</domain>
+        <domain includeSubdomains="false">192.168.0.0</domain>
+    </domain-config>
+</network-security-config>

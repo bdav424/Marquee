@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Winchester Marquee</string>
+    <string name="masthead">WINCHESTER</string>
+    <string name="widget_description">What\'s playing at Alamo Drafthouse Winchester.</string>
+</resources>

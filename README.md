@@ -213,7 +213,14 @@ Rolling from A toward Z means stepping the drum one flip at a time.
   glance, the panel is where a verdict explains itself.
 - `prefers-reduced-motion` snaps straight to the final characters.
 
-**Widget** (`widget/marquee-widget.js`) — Scriptable, iOS. The glance: next
+**Android widget** (`android/`) — a home-screen widget in Kotlin, reading the
+same snapshot. Six rows, dimmed titles fading toward the flap colour, `?` for
+unknown, tap opens the board. No chasing lamps or split-flap animation: a
+widget repaints on the host's schedule, not per frame. **Never compiled** —
+written without an Android SDK to hand, so treat it as reviewed, not working.
+See [android/README.md](android/README.md).
+
+**iOS widget** (`widget/marquee-widget.js`) — Scriptable, iOS. The glance: next
 showings, series colour as a leading rule, dimmed titles at reduced alpha, `?`
 for unknown. Tapping opens the companion page. An Android equivalent reads the
 identical JSON.
@@ -272,6 +279,7 @@ marquee/images.py          poster caching, never hotlinked
 
 web/                       companion page (phone-first, no framework)
 widget/marquee-widget.js   Scriptable home-screen widget (iOS)
+android/                   home-screen widget (Android, uncompiled)
 
 scripts/refresh.py         cron entry point — fetch, build, degrade gracefully
 scripts/build_sample.py    display JSON from invented fixtures, not real data

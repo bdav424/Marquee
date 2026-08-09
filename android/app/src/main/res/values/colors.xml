@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same palette as the web board, so the two surfaces look related. -->
+    <color name="face">#E2CB99</color>
+    <color name="face_hot">#F2E3BA</color>
+    <color name="flap_ink">#17130C</color>
+    <!-- A dimmed title fades toward the flap rather than the board going
+         dark, matching how the web board weights a flagged row. -->
+    <color name="flap_ink_dim">#8A7C62</color>
+    <color name="ink_soft">#9E17130C</color>
+    <color name="bulb">#FFD98A</color>
+    <color name="wall">#1B140C</color>
+    <color name="alert">#B8600C</color>
+</resources>

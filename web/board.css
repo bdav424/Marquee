@@ -27,7 +27,7 @@
   --cell-gap: 1px;
   /* Flap height as a multiple of width. 1 is square, 2 is a tall card.
      Read by layout() in board.js, so this is the single lever. */
-  --cell-aspect: 2;
+  --cell-aspect: 1.75;
   /* Vertical space between rows, as a fraction of flap height. */
   --row-gap: 0.125;
 }

@@ -155,6 +155,16 @@ def strip_decoration(title: str) -> str:
     # thirteen characters on a widget row that only has about thirty.
     cleaned = re.sub(
         r"\s*\(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\)\s*$", "", cleaned).strip()
+    # Presentation notes, which describe the screening rather than the film.
+    # Whitelisted rather than "drop any trailing parenthetical", so a title
+    # that really ends in brackets keeps them.
+    # Only notes about the screening. A cut or a restoration is a different
+    # film in a way "subtitled" is not — "Manhunter: The Final Cut" is playing
+    # a specific version and dropping that would misname it.
+    cleaned = re.sub(
+        r"\s*\((?:subtitled|dubbed|open captioned|closed captioned|captioned|"
+        r"3d|2d|imax|70mm|35mm|digital)\)\s*$",
+        "", cleaned, flags=re.I).strip()
     return cleaned or title
 
 

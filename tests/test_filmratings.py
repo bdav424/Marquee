@@ -146,6 +146,19 @@ class TestTitleCleanup(unittest.TestCase):
         self.assertEqual(
             strip_decoration("Not A Date (Part 2)"), "Not A Date (Part 2)")
 
+    def test_a_screening_note_is_dropped(self):
+        self.assertEqual(
+            strip_decoration("Nausicaa of the Valley of the Wind (Subtitled)"),
+            "Nausicaa of the Valley of the Wind")
+        self.assertEqual(strip_decoration("Some Film (3D)"), "Some Film")
+
+    def test_a_cut_is_not_a_screening_note(self):
+        # A restoration or a recut is a different film in a way "subtitled" is
+        # not, so dropping it would misname what is actually playing.
+        for kept in ("Blade Runner (Final Cut)", "Apocalypse Now (Redux)",
+                     "Aliens (Director's Cut)"):
+            self.assertEqual(strip_decoration(kept), kept)
+
     def test_does_not_eat_a_colon_that_is_part_of_the_title(self):
         # Regression: a generic "word colon" rule turned
         # "Spider-Man: Brand New Day" into "Brand New Day" and searched CARA

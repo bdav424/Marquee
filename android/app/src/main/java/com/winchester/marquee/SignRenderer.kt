@@ -55,6 +55,13 @@ object SignRenderer {
      */
     const val CHANNELS = 3
 
+    /**
+     * Characters of title a row should keep before the cells stop growing.
+     * Below this a marquee is showing initials, which is not a glance at
+     * anything.
+     */
+    private const val MIN_CHARS = 16
+
     /** Lamp frames are drawn at this fraction of the sign, then scaled up. */
     private const val LAMP_SCALE = 0.28f
 
@@ -175,7 +182,7 @@ object SignRenderer {
         val available = face.height() - (y - face.top) - pad
         val rowGap = dp(2.5f)
         val minH = dp(11f)                 // below this the letters stop reading
-        val maxH = dp(20f)                 // above it a tall widget just gapes
+        val maxH = dp(26f)                 // above it a tall widget just gapes
 
         // Fit the rows to the height, rather than a fixed row height to the
         // rows: a fixed 17dp left two thirds of a short widget empty while
@@ -188,8 +195,22 @@ object SignRenderer {
         }
         cellH = min(cellH, maxH)
 
-        val cellW = cellH * 0.52f          // a flap is taller than it is wide
+        // Height is only half the constraint. Everything on a row scales with
+        // cellH — the flaps, the time, the marker — so a tall cell on a narrow
+        // sign spends the whole width on eight big letters and truncates the
+        // film. Cap the cell at whatever still leaves a title worth reading.
+        //
+        // The coefficient is the row's width in units of cellH: the time text
+        // is about twelve monospace characters at 0.62 of the cell, the marker
+        // one more, and MIN_CHARS flaps at 0.52 each.
         val cellGap = max(dp(0.6f), 1f)
+        val perChar = 0.6f * 0.62f         // monospace advance, as a fraction
+        val widthUnits = 12f * perChar + perChar + MIN_CHARS * 0.52f
+        val widthCap =
+            (face.width() - 3 * dp(6f) - MIN_CHARS * cellGap) / widthUnits
+        cellH = min(cellH, max(widthCap, minH))
+
+        val cellW = cellH * 0.52f          // a flap is taller than it is wide
 
         for (i in 0 until visible) {
             val row = rows[i]

@@ -61,7 +61,7 @@ class MarqueeWidget : AppWidgetProvider() {
         private const val FALLBACK_H_DP = 110
 
         /** More rows than this and the flaps stop being legible. */
-        private const val MAX_ROWS = 8
+        private const val MAX_ROWS = 12
 
         /** The chase frames, one per SignRenderer channel. */
         private val LAMP_IDS = intArrayOf(R.id.lamp0, R.id.lamp1, R.id.lamp2)
@@ -234,10 +234,28 @@ class MarqueeWidget : AppWidgetProvider() {
 
         val metrics = context.resources.displayMetrics
         val options = manager.getAppWidgetOptions(widgetId)
+        // The bitmap is stretched to the widget by fitXY, so only its aspect
+        // ratio matters — and getting that wrong distorts everything inside.
+        //
+        // MAX_HEIGHT is the wrong field to ask. The documentation pairs
+        // MIN_WIDTH with MAX_HEIGHT for portrait, which assumes the launcher
+        // reports per-orientation bounds; several report the resize range
+        // instead, so MAX_HEIGHT comes back as most of the screen. Drawing at
+        // that aspect and squashing it to fit put every row in the top fifth
+        // of the sign with the letters flattened.
+        //
+        // MIN_HEIGHT is the conservative read and close to the placed size on
+        // the launchers that get MAX_HEIGHT wrong.
         val wDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
             .takeIf { it > 0 } ?: FALLBACK_W_DP
-        val hDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
-            .takeIf { it > 0 } ?: FALLBACK_H_DP
+        val rawH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            .takeIf { it > 0 }
+            ?: options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+                .takeIf { it > 0 }
+            ?: FALLBACK_H_DP
+        // A last guard on a launcher that reports something absurd either
+        // way. A marquee outside these proportions is not a marquee.
+        val hDp = rawH.coerceIn((wDp * 0.25f).toInt(), (wDp * 2.0f).toInt())
         // Drawn smaller than the widget and scaled up by the ImageView. At
         // native resolution the bitmaps exceeded the RemoteViews transaction
         // limit, and an oversized update is dropped whole — the widget went

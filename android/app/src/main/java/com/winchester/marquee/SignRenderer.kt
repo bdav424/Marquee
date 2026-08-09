@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.PointF
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
@@ -45,6 +46,17 @@ object SignRenderer {
     // web board's seam sits on a much larger tile.
     private const val SEAM = 0x4214100A
     private const val GLOW = 0xFFB8600C.toInt()
+    private const val BULB_HALO = 0x33FFD98A
+
+    /**
+     * Chase circuits. Lamp n is wired to channel n % CHANNELS, and one channel
+     * is live at a time — the mechanical arrangement, not a per-lamp
+     * animation. Two channels cannot express direction, so three is the floor.
+     */
+    const val CHANNELS = 3
+
+    /** Lamp frames are drawn at this fraction of the sign, then scaled up. */
+    private const val LAMP_SCALE = 0.5f
 
     /** One line of the board. */
     data class Row(
@@ -239,6 +251,53 @@ object SignRenderer {
      * rotates; here it is frozen, because a widget is repainted by its host
      * every half hour and animation is not on offer.
      */
+    /**
+     * Where every lamp sits, walked clockwise from the top-left corner.
+     *
+     * Position in this list is the lamp's wiring: lamp n is on channel
+     * n % CHANNELS. That is how a mechanical chaser is actually built — the
+     * bulbs are wired to a few circuits in rotation and a rotating drum
+     * energises one circuit at a time, so the light appears to travel without
+     * anything moving. Three is the floor: with two, "forwards" and
+     * "backwards" look identical.
+     *
+     * Both the static sign and the animation frames walk this same list, so
+     * the lit lamps always land exactly on top of the unlit ones.
+     */
+    private fun bulbPositions(body: RectF, lane: Float, spacing: Float): List<PointF> {
+        val inset = lane / 2f
+        val left = body.left + inset
+        val right = body.right - inset
+        val top = body.top + inset
+        val bottom = body.bottom - inset
+        val w = right - left
+        val h = bottom - top
+        val perimeter = 2 * (w + h)
+
+        // The lamp count is forced to a multiple of CHANNELS and the spacing
+        // adjusted to suit, rather than the other way round. Walking the
+        // perimeter at a fixed pitch leaves a remainder where the loop closes,
+        // and at the wrap the chase either doubles a lamp or skips one — a
+        // visible hitch in one corner, at whatever widget sizes happen to
+        // divide badly. Spacing is the forgiving quantity here; the wiring is
+        // not.
+        var count = max(CHANNELS * 2, (perimeter / spacing).toInt())
+        count -= count % CHANNELS
+        val step = perimeter / count
+
+        val out = ArrayList<PointF>(count)
+        for (i in 0 until count) {
+            var d = i * step
+            when {
+                d < w -> out.add(PointF(left + d, top))
+                d < w + h -> { d -= w; out.add(PointF(right, top + d)) }
+                d < 2 * w + h -> { d -= w + h; out.add(PointF(right - d, bottom)) }
+                else -> { d -= 2 * w + h; out.add(PointF(left, bottom - d)) }
+            }
+        }
+        return out
+    }
+
     private fun drawBulbs(
         canvas: Canvas,
         paint: Paint,
@@ -248,27 +307,50 @@ object SignRenderer {
         spacing: Float
     ) {
         paint.style = Paint.Style.FILL
-        val inset = lane / 2f
-        val left = body.left + inset
-        val right = body.right - inset
-        val top = body.top + inset
-        val bottom = body.bottom - inset
-
-        var n = 0
-        val plot = { x: Float, yy: Float ->
-            paint.color = if (n % 3 == 0) BULB else BULB_DIM
-            canvas.drawCircle(x, yy, radius, paint)
-            n++
+        paint.color = BULB_DIM
+        // The static layer draws every lamp unlit. The lit ones are painted
+        // over it by the flipper frames, so a phone that will not animate
+        // still shows a complete ring rather than gaps.
+        for (p in bulbPositions(body, lane, spacing)) {
+            canvas.drawCircle(p.x, p.y, radius, paint)
         }
+    }
 
-        var x = left
-        while (x <= right) { plot(x, top); x += spacing }
-        var yy = top + spacing
-        while (yy <= bottom) { plot(right, yy); yy += spacing }
-        x = right - spacing
-        while (x >= left) { plot(x, bottom); x -= spacing }
-        yy = bottom - spacing
-        while (yy > top) { plot(left, yy); yy -= spacing }
+    /**
+     * One frame of the chase: only the lamps on the live channel, everything
+     * else transparent.
+     *
+     * Drawn at reduced scale on purpose. Bitmaps handed to RemoteViews share a
+     * transaction budget of about a megabyte, and three full-size copies of
+     * the sign would exceed it — but a frame of this is a few dozen dots, so
+     * scaling it up costs nothing anyone can see.
+     */
+    fun lamps(widthPx: Int, heightPx: Int, density: Float, phase: Int): Bitmap {
+        val scale = LAMP_SCALE
+        val w = max((widthPx * scale).toInt(), 1)
+        val h = max((heightPx * scale).toInt(), 1)
+        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val d = density * scale
+        val dp = { v: Float -> v * d }
+        val frameInset = dp(2f)
+        val body = RectF(frameInset, frameInset, w - frameInset, h - frameInset)
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.style = Paint.Style.FILL
+        val positions = bulbPositions(body, dp(9f), dp(11f))
+        val radius = dp(2.1f)
+
+        for ((n, p) in positions.withIndex()) {
+            if (n % CHANNELS != phase) continue
+            paint.color = BULB
+            canvas.drawCircle(p.x, p.y, radius, paint)
+            // The filament's spill onto the frame around it.
+            paint.color = BULB_HALO
+            canvas.drawCircle(p.x, p.y, radius * 2.1f, paint)
+        }
+        return bitmap
     }
 
     private fun wrap(text: String, paint: Paint, width: Float): List<String> {

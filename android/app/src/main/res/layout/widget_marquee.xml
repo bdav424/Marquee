@@ -6,8 +6,17 @@
      an ImageView, and a Canvas can draw flaps, so the whole board is painted
      off-screen and handed over as one image.
 
-     The two ImageViews on top are transparent tap targets: the sign opens the
-     board in a browser, the corner one forces a refresh. -->
+     The lamps chase via the ViewFlipper. RemoteViews cannot run an animation,
+     but a ViewFlipper cycles its own children on a timer, so each child is
+     one phase of the chase: a transparent overlay carrying only the lamps on
+     that channel. The sign underneath draws every lamp unlit, so a launcher
+     that refuses to animate still shows a complete ring.
+
+     flipInterval is the chase speed. Shorter looks livelier and costs more
+     battery, since the launcher redraws on every tick.
+
+     The last ImageView is a transparent tap target: the sign opens the board,
+     the corner one forces a refresh. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -19,6 +28,35 @@
         android:layout_height="match_parent"
         android:scaleType="fitXY"
         android:contentDescription="@string/widget_description" />
+
+    <ViewFlipper
+        android:id="@+id/lamps"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:autoStart="true"
+        android:flipInterval="450">
+
+        <ImageView
+            android:id="@+id/lamp0"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:contentDescription="@null" />
+
+        <ImageView
+            android:id="@+id/lamp1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:contentDescription="@null" />
+
+        <ImageView
+            android:id="@+id/lamp2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:contentDescription="@null" />
+    </ViewFlipper>
 
     <ImageView
         android:id="@+id/retry"

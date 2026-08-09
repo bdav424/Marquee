@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -61,6 +62,19 @@ class MarqueeWidget : AppWidgetProvider() {
 
         /** More rows than this and the flaps stop being legible. */
         private const val MAX_ROWS = 8
+
+        /** The chase frames, one per SignRenderer channel. */
+        private val LAMP_IDS = intArrayOf(R.id.lamp0, R.id.lamp1, R.id.lamp2)
+
+        /**
+         * Set false to stop the lamps chasing.
+         *
+         * The animation is the launcher redrawing the widget every few hundred
+         * milliseconds for as long as the home screen is on view. That is a
+         * real if small battery cost, and it is the first thing to turn off if
+         * the phone starts feeling warm.
+         */
+        private const val ANIMATE_LAMPS = true
     }
 
     override fun onUpdate(
@@ -191,6 +205,19 @@ class MarqueeWidget : AppWidgetProvider() {
             .takeIf { it > 0 } ?: FALLBACK_H_DP
         val wPx = (wDp * metrics.density).toInt()
         val hPx = (hDp * metrics.density).toInt()
+
+        if (ANIMATE_LAMPS) {
+            for ((phase, id) in LAMP_IDS.withIndex()) {
+                views.setImageViewBitmap(
+                    id, SignRenderer.lamps(wPx, hPx, metrics.density, phase)
+                )
+            }
+        } else {
+            // Hiding the flipper leaves the sign's own unlit ring showing,
+            // which is a sign with the chaser switched off rather than a sign
+            // missing its lamps.
+            views.setViewVisibility(R.id.lamps, View.GONE)
+        }
 
         if (body == null) {
             views.setImageViewBitmap(

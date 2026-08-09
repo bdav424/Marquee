@@ -6,6 +6,7 @@ decorates them, and it has to fail soft: a typo in the TOML must leave titles
 `unknown`, not take the fetch down.
 """
 
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -13,6 +14,11 @@ from tempfile import TemporaryDirectory
 from marquee.reasons import (
     is_exempt, load, load_exempt, lookup, normalise, stub_for,
 )
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+from build_sample import SAMPLE_TITLES as _SAMPLE  # noqa: E402
+
+SAMPLE_TITLES = [t.name for t in _SAMPLE]
 
 SHIPPED = load()
 SHIPPED_EXEMPT = load_exempt()
@@ -160,6 +166,16 @@ class TestShippedFile(unittest.TestCase):
                 reason.lower().startswith("rated"),
                 f"{key}: reason should begin with the MPA lead-in",
             )
+
+    def test_no_invented_title_is_shipped(self):
+        # The book shipped with two worked examples borrowed from
+        # build_sample.py's fixtures. Those titles are invented, so their
+        # reasons are too — and a fabricated sentence produces a confident
+        # wrong verdict, which is the one outcome the content signal is meant
+        # to rule out. Anything in here must be a sentence CARA actually
+        # wrote about a film that actually exists.
+        invented = {normalise(n) for n in SAMPLE_TITLES}
+        self.assertEqual(invented & set(SHIPPED), set())
 
     def test_normalise_is_stable(self):
         self.assertEqual(normalise("The Long Dark"), normalise("the  long dark"))

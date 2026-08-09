@@ -48,6 +48,13 @@ no_descriptor = [
 
 [reasons]
 
-# Examples of the shape. Delete these once real titles are in.
-"The Long Dark" = "Rated R for strong bloody violence, language throughout, and some sexual content."
-"Ironwood" = "Rated PG-13 for sequences of violence and action."
+# Empty until real sentences are pasted in. It used to carry two examples of
+# the shape — "The Long Dark" and "Ironwood", both invented for
+# scripts/build_sample.py — and that was a hazard, not a convenience: if a
+# real film ever booked under either name it would have been dimmed or cleared
+# on a reason CARA never wrote. A verdict from a made-up sentence is worse
+# than a question mark, so the file ships empty.
+#
+# The shape, for reference, is one line per title:
+#
+#   "Title As Billed" = "Rated R for strong bloody violence, and language."

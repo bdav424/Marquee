@@ -192,6 +192,56 @@ function rows(data) {
     .sort((a, b) => new Date(a.showing.showtime) - new Date(b.showing.showtime));
 }
 
+/* ---------- border lamps ---------- */
+
+const BULB_PERIOD_MS = 1400;
+const BULB_SPACING = 17;
+const BULB_INSET = 11;
+
+/* Lay bulbs at fixed points around the sign's perimeter and light them in a
+   travelling pattern.
+
+   Neighbouring bulbs sit half a period apart, so at any instant every other
+   one is lit. Adding a further period/n to the step makes that alternating
+   pattern advance by one bulb per cycle — the alternation itself rotates
+   around the board, which is the marquee chase. The bulbs never move. */
+function buildBulbs() {
+  const sign = document.querySelector('.sign');
+  const holder = document.getElementById('bulbs');
+  if (!sign || !holder) return;
+
+  const rect = sign.getBoundingClientRect();
+  const w = rect.width - BULB_INSET * 2;
+  const h = rect.height - BULB_INSET * 2;
+  if (w <= 0 || h <= 0) return;
+
+  const cols = Math.max(2, Math.round(w / BULB_SPACING));
+  const rowCount = Math.max(2, Math.round(h / BULB_SPACING));
+
+  // Walked as one continuous loop, so the delay index runs unbroken around
+  // the corners and the pattern does not restart on each edge.
+  const points = [];
+  for (let i = 0; i < cols; i++) points.push([BULB_INSET + (w * i) / cols, BULB_INSET]);
+  for (let i = 0; i < rowCount; i++) points.push([BULB_INSET + w, BULB_INSET + (h * i) / rowCount]);
+  for (let i = cols; i > 0; i--) points.push([BULB_INSET + (w * i) / cols, BULB_INSET + h]);
+  for (let i = rowCount; i > 0; i--) points.push([BULB_INSET, BULB_INSET + (h * i) / rowCount]);
+
+  const step = BULB_PERIOD_MS / 2 + BULB_PERIOD_MS / points.length;
+
+  holder.replaceChildren(...points.map(([x, y], i) => {
+    const bulb = document.createElement('div');
+    bulb.className = 'bulb';
+    bulb.style.left = `${x.toFixed(1)}px`;
+    bulb.style.top = `${y.toFixed(1)}px`;
+    if (!reduceMotion) {
+      bulb.style.animationDuration = `${BULB_PERIOD_MS}ms`;
+      // Negative delay starts each bulb part-way through its own cycle.
+      bulb.style.animationDelay = `${-((i * step) % BULB_PERIOD_MS).toFixed(1)}ms`;
+    }
+    return bulb;
+  }));
+}
+
 /* ---------- board ---------- */
 
 const TIME_CELLS = 6;
@@ -303,6 +353,10 @@ function render(data) {
       built.delete(key);
     }
   }
+
+  // The sign's perimeter changes with its content, so the lamps are relaid
+  // after the rows settle rather than once at startup.
+  requestAnimationFrame(buildBulbs);
 }
 
 function renderStamp(data) {
@@ -347,5 +401,8 @@ setInterval(() => tick(false), POLL_MS);
 let resizeTimer;
 addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => snapshot && render(snapshot), 200);
+  resizeTimer = setTimeout(() => {
+    if (snapshot) render(snapshot);
+    else buildBulbs();
+  }, 200);
 });

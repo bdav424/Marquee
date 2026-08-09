@@ -74,32 +74,45 @@ body::before {
     0 0 70px rgba(255,190,96,0.18);
 }
 
-/* Border lamps, marching slowly around the bezel. Four gradient strips, one
-   per edge — cheaper than a hundred elements and it animates by sliding the
-   background rather than laying anything out. */
-.sign::before {
-  content: "";
+/* Border lamps. Real elements at fixed positions, generated in board.js from
+   the sign's measured perimeter.
+
+   These used to be four repeating-gradient strips slid by animating
+   background-position. Each edge ended up travelling a different distance per
+   cycle — the top moved one bulb spacing, the left moved the sign's whole
+   height — so at the same duration the verticals ran roughly seventeen times
+   faster than the horizontals. Sliding a background also moves the bulbs
+   themselves, which is not what a marquee does: the lamps are bolted down and
+   only their filament switches. */
+
+.bulbs {
   position: absolute;
-  inset: 5px;
+  inset: 0;
   pointer-events: none;
-  border-radius: 12px;
-  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
-  background-position: left top, left bottom, left top, right top;
-  background-size: 17px 11px, 17px 11px, 11px 17px, 11px 17px;
-  background-image:
-    radial-gradient(circle 2.6px at 8.5px 5.5px, var(--bulb) 0 100%, transparent 100%),
-    radial-gradient(circle 2.6px at 8.5px 5.5px, var(--bulb) 0 100%, transparent 100%),
-    radial-gradient(circle 2.6px at 5.5px 8.5px, var(--bulb) 0 100%, transparent 100%),
-    radial-gradient(circle 2.6px at 5.5px 8.5px, var(--bulb) 0 100%, transparent 100%);
-  filter: drop-shadow(0 0 4px rgba(255,201,110,0.85));
-  animation: chase 1.9s linear infinite;
+  z-index: 2;
 }
 
-@keyframes chase {
-  to {
-    background-position:
-      17px top, left calc(100% - 17px),
-      left calc(100% + 17px), right -17px;
+.bulb {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--bulb);
+  animation-name: filament;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* Hard on/off, no fade — a filament switching, not a light dimming. */
+@keyframes filament {
+  0%, 49.9% {
+    opacity: 1;
+    box-shadow: 0 0 5px 1px rgba(255, 201, 110, 0.85);
+  }
+  50%, 100% {
+    opacity: 0.2;
+    box-shadow: none;
   }
 }
 
@@ -370,5 +383,5 @@ body::before {
    the board — reduced motion snaps straight to the final characters. */
 @media (prefers-reduced-motion: reduce) {
   .flip { display: none; }
-  .sign::before { animation: none; }
+  .bulb { animation: none; }
 }

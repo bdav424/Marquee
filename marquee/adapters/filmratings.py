@@ -331,18 +331,27 @@ def probe(title: str) -> None:
     print(f"# baseline : {len(baseline)} bytes with no query at all\n")
 
     print("## GET parameters\n")
+    # Compared against each other, not only against the baseline. Every
+    # parameter returning the same page as every other is the tell that none
+    # of them is honoured — measuring each against the no-query baseline made
+    # them all look like they did something.
+    sizes: dict[str, int] = {}
     for name in CANDIDATE_PARAMS:
         try:
             body = fetch(f"{base}?{name}={encoded}")
         except LookupFailed as exc:
             print(f"  {name:18} ERR {str(exc)[:60]}")
             continue
-        delta = len(body) - len(baseline)
+        sizes[name] = len(body)
         echoed = wanted.lower() in body.lower()
-        verdict = "IGNORED" if delta == 0 and not echoed else "CHANGES RESPONSE"
-        print(f"  {name:18} {len(body):>7}  delta {delta:>+7}  "
-              f"echoed {str(echoed):5}  {verdict}")
+        print(f"  {name:18} {len(body):>7} bytes   echoed {echoed}")
         time.sleep(REQUEST_DELAY)
+
+    if sizes:
+        spread = max(sizes.values()) - min(sizes.values())
+        print(f"\n  spread across parameters: {spread} bytes")
+        print("  Nothing echoed and a small spread means the query is being "
+              "dropped\n  and the same page comes back whatever you ask for.")
 
     print("\n## POST searchForAMovie\n")
     try:

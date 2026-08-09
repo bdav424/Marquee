@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 from dataclasses import replace  # noqa: E402
 
 from marquee import tmdb  # noqa: E402
+from marquee import reasons as reason_book  # noqa: E402
 from marquee.adapters import alamo, filmratings  # noqa: E402
 from marquee.build import build_snapshot, write_snapshot  # noqa: E402
 from marquee.images import cache_image, prune  # noqa: E402
@@ -38,6 +39,7 @@ from marquee.severity import load_config  # noqa: E402
 DISPLAY_JSON = ROOT / "web" / "data" / "marquee.json"
 RAW_CACHE = ROOT / "cache" / "last-good.json"
 REASON_CACHE = ROOT / "cache" / "reasons.json"
+NEEDS_REASON = ROOT / "logs" / "needs-reason.txt"
 POSTER_DIR = ROOT / "web" / "posters"
 LOG_DIR = ROOT / "logs"
 PARSE_LOG = LOG_DIR / "parse-failures.jsonl"
@@ -123,56 +125,81 @@ def enrich(titles: list[Title]) -> list[Title]:
     return enriched
 
 
+# filmratings.com is behind Imperva bot protection: no query parameter is
+# honoured, a POST returns the unfiltered page byte-for-byte, and its scripts
+# expose no search endpoint. Reaching it would mean defeating an access
+# control. Left in place and switchable in case that ever changes, but off.
+CARA_ENABLED = os.environ.get("MARQUEE_TRY_CARA", "").strip() == "1"
+
+
 def resolve_reasons(titles: list[Title]) -> list[Title]:
-    """Fill mpa_reason from filmratings.com (CARA).
+    """Attach MPA rating reasons, and report anything still missing one.
 
-    Alamo publishes a certification and no reason text, so without this every
-    title scores `unknown` and nothing ever greys. CARA is the origin of those
-    sentences and the only live source for current releases.
+    Order: the hand-kept book in config/reasons.toml first, then the on-disk
+    cache from any previous lookup, then CARA if it has been switched on.
 
-    Cached permanently on disk — a reason never changes once assigned — so a
-    steady-state cycle makes zero requests and only genuinely new titles are
-    ever looked up. That is what keeps a 6-hour cron polite to a small public
-    lookup service.
+    A title with no reason keeps mpa_reason None and scores `unknown`. That is
+    the honest state — it shows a question mark rather than being quietly
+    treated as clean — and it lands in logs/needs-reason.txt as a
+    ready-to-paste stub.
     """
+    book = reason_book.load()
     cache = filmratings.ReasonCache(REASON_CACHE)
-    hits = fresh = misses = errors = 0
     resolved = []
+    from_book = from_cache = looked_up = errors = 0
+    missing: list[str] = []
 
     for title in titles:
         if title.mpa_reason:
             resolved.append(title)
             continue
 
+        text = reason_book.lookup(title.name, book)
+        if text:
+            from_book += 1
+            resolved.append(replace(title, mpa_reason=text))
+            continue
+
         found = cache.get(title.name)
-        if found is None:
+        if found is not None and found.usable:
+            from_cache += 1
+            resolved.append(replace(title, mpa_reason=found.reason))
+            continue
+
+        if CARA_ENABLED and found is None:
             try:
-                # Alamo's certification is a second guard: a CARA row whose
-                # rating disagrees is not this film.
                 found = filmratings.lookup(
                     title.name, expect_certification=title.mpa_rating
                 )
                 cache.put(title.name, found)
-                fresh += 1
+                looked_up += 1
+                if found.usable:
+                    resolved.append(replace(title, mpa_reason=found.reason))
+                    continue
             except filmratings.LookupFailed as exc:
                 errors += 1
-                log(f"  cara: {title.name}: {str(exc)[:80]}")
-                resolved.append(title)
-                continue
-        else:
-            hits += 1
+                log(f"  cara: {title.name}: {str(exc)[:70]}")
 
-        if found.usable:
-            resolved.append(replace(title, mpa_reason=found.reason))
-        else:
-            misses += 1
-            resolved.append(title)
+        missing.append(title.name)
+        resolved.append(title)
 
     cache.save()
-    unknown = sum(1 for t in resolved if not t.mpa_reason)
-    log(f"reasons: {hits} cached, {fresh} looked up, {misses} not in CARA, "
-        f"{errors} errors -> {unknown}/{len(resolved)} still unknown")
+    write_needs_reason(missing)
+
+    log(f"reasons: {from_book} from the book, {from_cache} cached, "
+        f"{looked_up} looked up, {errors} errors, {len(missing)} still unknown")
+    if missing:
+        log(f"  add them to config/reasons.toml — stub in {NEEDS_REASON.name}")
     return resolved
+
+
+def write_needs_reason(missing: list[str]) -> None:
+    """Leave a paste-ready block for the titles that still need a reason."""
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    if not missing:
+        NEEDS_REASON.write_text("# Every title has a rating reason.\n")
+        return
+    NEEDS_REASON.write_text(reason_book.stub_for(sorted(set(missing))))
 
 
 def emit_stale() -> int:

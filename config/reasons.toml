@@ -1,0 +1,27 @@
+# MPA rating reasons, by title.
+#
+# Why this is a hand-kept file and not a fetch: every automatic source is
+# closed. Alamo publishes the certification and no reason text. TMDB does not
+# model reasons at all. IMDb carries the field only in its paid bulk feed,
+# licensed per use case. filmratings.com — the MPA's own CARA database and the
+# origin of every one of these sentences — sits behind Imperva bot protection:
+# no query parameter is honoured, a POST returns the unfiltered page
+# byte-for-byte, and its JavaScript exposes no search endpoint. Getting past
+# that would mean defeating an access control, and this project will not.
+#
+# In practice it is a small job. One theatre runs about ten films at a time, a
+# reason never changes once assigned, and refresh.py writes
+# logs/needs-reason.txt with a ready-to-paste stub for anything still missing.
+#
+# Copy the sentence VERBATIM from filmratings.com. The parser reads the actual
+# wording — "strong bloody violence" scores differently from "some violence" —
+# so paraphrasing changes the verdict.
+#
+# Titles match loosely: case, punctuation, leading articles and a trailing
+# year are all ignored, so "The Thing" matches "the thing".
+
+[reasons]
+
+# Examples of the shape. Delete these once real titles are in.
+"The Long Dark" = "Rated R for strong bloody violence, language throughout, and some sexual content."
+"Ironwood" = "Rated PG-13 for sequences of violence and action."

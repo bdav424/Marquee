@@ -11,12 +11,12 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 |---|---|
 | 1 — Endpoint discovery | **Done.** JSON API found and mapped. |
 | 2 — TMDB enrichment | **Wired, never executed.** Runtime, genres, synopsis. |
-| 3 — Content severity parser | **Built and tested.** Has no input yet — see below. |
+| 3 — Content severity parser | **Built, tested and fed.** Input is a hand-kept book — see below. |
 | 3b — Series/event treatments | **Built and tested.** Reconciling against the real feed. |
 | 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-The pipeline runs end to end against real Winchester data. 123 tests.
+The pipeline runs end to end against real Winchester data. 148 tests.
 
 ### The feed
 
@@ -55,24 +55,8 @@ defaulted missing reasons to "no content issues" would show a wall of
 confidently unflagged titles and quietly mean nothing. Instead it shows `?`
 and says so.
 
-**The fix is `marquee/adapters/filmratings.py`** — the MPA's own CARA
-database, which publishes the exact sentences the parser was written for.
-Written and wired into the cycle, but **never executed against the live site**,
-so extraction is reviewed-not-verified. Confirm it with:
-
-```
-python3 -m marquee.adapters.filmratings discover "Some Film Title"
-```
-
-Extraction is regex-over-text rather than DOM-shaped, so it does not depend on
-markup structure and returns `None` rather than a wrong answer when it cannot
-read a page. Results are cached permanently on disk (a reason never changes
-once assigned) and misses expire after a week, so a steady-state cycle makes
-zero requests to a small public service.
-
-### Why not an open dataset?
-
-There isn't one that carries reason text for current releases:
+**The fix is `config/reasons.toml`, kept by hand.** Every automatic source is
+closed:
 
 | Source | Certification | Reason text |
 |---|---|---|
@@ -81,14 +65,34 @@ There isn't one that carries reason text for current releases:
 | OMDb | yes | no |
 | Wikidata | yes | no property for it |
 | IMDb free non-commercial datasets | no | no |
-| IMDb paid bulk data (AWS Data Exchange) | yes | **yes** (`certificate.reason`) |
-| filmratings.com (CARA) | yes | **yes** — and free |
+| IMDb paid bulk data (AWS Data Exchange) | yes | yes, licensed per use case |
+| filmratings.com (CARA) | yes | yes — **behind bot protection** |
 
-IMDb's commercial feed has the field, but it is licensed per use case through
-AWS Data Exchange, which is absurd for one theater. Scraped CARA dumps on
-GitHub and Kaggle are historical snapshots and lag new releases — exactly the
-titles a marquee shows. CARA is both the authoritative source and the origin
-of every one of those strings, so it is what this queries.
+CARA is the MPA's own database and the origin of every one of these sentences,
+so `marquee/adapters/filmratings.py` was written against it. It cannot be
+queried. Probing the live site showed no query parameter is honoured — eight
+candidate names all return the same page, and `filmTitle`, which the adapter
+originally used, was never one of the page's real fields. A POST returns the
+unfiltered page byte-for-byte, the page contains no `<form>` at all, and its
+scripts load `_Incapsula_Resource`: the site sits behind Imperva bot
+protection. Reaching the search would mean defeating an access control, which
+this project will not do. The adapter stays, switchable via
+`MARQUEE_TRY_CARA=1`, in case that ever changes.
+
+So the reasons are typed in, which is less work than it sounds. One theatre
+runs about ten films at a time, a reason never changes once CARA assigns it,
+and each cycle writes `logs/needs-reason.txt` with a ready-to-paste stub for
+anything still missing. Copy the sentence verbatim — the parser reads the
+wording, so `strong bloody violence` and `some violence` score differently.
+
+Titles match loosely: case, punctuation, leading articles, a trailing year and
+Alamo's programming prefixes are all ignored, so `Terror Tuesday: The Thing`
+finds an entry filed under `The Thing`.
+
+A title with no entry stays `unknown` and shows a question mark. That is the
+honest state, and it is why `unknown` exists as something distinct from clean:
+a display that defaulted missing reasons to "no content issues" would show a
+wall of confidently unflagged titles and quietly mean nothing.
 
 ## What is built: the severity parser
 
@@ -258,7 +262,7 @@ No dependencies. Python 3.11+ for stdlib `tomllib`.
 python3 -m unittest discover -s tests -t .
 ```
 
-123 tests: the intensity ladder, clause scoping, longest-match resolution,
+148 tests: the intensity ladder, clause scoping, longest-match resolution,
 unknown handling, thresholds and provenance for the severity parser; strand
 recognition, match precedence, whole-word guarding and unrecognised-tag
 retention for series treatments.
@@ -268,10 +272,12 @@ retention for series treatments.
 ```
 config/marquee.toml        tunable vocabulary, ladder, thresholds
 config/series.toml         series/event tag treatments (seed data)
+config/reasons.toml        MPA rating reasons, kept by hand
 
 marquee/model.py           the normalised contract everything is written against
 marquee/severity.py        rating-reason parser + threshold evaluation
 marquee/series.py          series tag resolution + visual treatment
+marquee/reasons.py         the hand-kept reason book
 marquee/build.py           combines them into the display snapshot
 marquee/tmdb.py            enrichment + poster caching (written, never executed)
 marquee/adapters/alamo.py  JSON schedule API + discover() + field mapping

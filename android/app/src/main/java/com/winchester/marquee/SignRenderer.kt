@@ -64,6 +64,9 @@ object SignRenderer {
      */
     private const val MIN_CHARS = 15
 
+    /** Flaps in the time run. "12:00P" is the longest a showtime gets. */
+    private const val TIME_CELLS = 6
+
     /** Lamp frames are drawn at this fraction of the sign, then scaled up. */
     private const val LAMP_SCALE = 0.28f
 
@@ -223,15 +226,12 @@ object SignRenderer {
         // sign spends the whole width on eight big letters and truncates the
         // film. Cap the cell at whatever still leaves a title worth reading.
         //
-        // The coefficient is the row's width in units of cellH: the time text
-        // is about twelve monospace characters at 0.62 of the cell, the marker
-        // one more, and MIN_CHARS flaps at 0.52 each.
+        // The coefficient is the row's width in units of cellH: TIME_CELLS
+        // flaps and MIN_CHARS flaps at 0.52 each, plus the meta column, which
+        // is the marker and a four-character day at 0.42 of the cell.
         val cellGap = max(dp(0.6f), 1f)
-        val perChar = 0.6f * 0.62f         // monospace advance, as a fraction
-        // Eight characters of time, not twelve: "TODAY " is gone from most
-        // rows, and budgeting for the longest possible label on every row
-        // would spend the saving on nothing.
-        val widthUnits = 8f * perChar + perChar + MIN_CHARS * 0.52f
+        val perMetaChar = 0.6f * 0.42f     // monospace advance, as a fraction
+        val widthUnits = (TIME_CELLS + MIN_CHARS) * 0.52f + 6f * perMetaChar
         val widthCap =
             (face.width() - 3 * dp(6f) - MIN_CHARS * cellGap) / widthUnits
         cellH = min(cellH, max(widthCap, minH))
@@ -248,84 +248,76 @@ object SignRenderer {
                 .coerceIn(rowGap, cellH * 0.8f)
         } else rowGap
 
-        // One flap field for the whole board, not one per row. Sized to the
-        // widest time label present, so the runs end on a straight edge and
-        // the markers line up in a column — which is what a board looks like.
-        // Per-row widths left a ragged right edge that read as a mistake.
+        // Fixed columns for the whole board, not one layout per row. The
+        // runs then end on a straight edge and the markers line up, which is
+        // what a board looks like; per-row widths left a ragged edge that read
+        // as a mistake rather than a design.
         val rowPad = dp(6f)
         paint.typeface = mono
-        paint.textSize = cellH * 0.62f
-        var timeCol = 0f
+
+        // The meta column: the marker, and the day when it is not today.
+        paint.textSize = cellH * 0.42f
+        var metaCol = paint.measureText("? ")
         for (i in 0 until visible) {
-            val r = rows[i]
-            val label = if (r.day.isEmpty()) r.time else "${r.day} ${r.time}"
-            timeCol = max(timeCol, paint.measureText(label))
+            val day = rows[i].day
+            if (day.isNotEmpty()) {
+                metaCol = max(metaCol, paint.measureText("? ") + paint.measureText(day))
+            }
         }
-        val markerCol = paint.measureText("?") + rowPad * 0.7f
-        val flapRight = face.right - rowPad - timeCol - rowPad - markerCol
+
+        val timeRun = TIME_CELLS * (cellW + cellGap) - cellGap
+        val dayLeft = face.right - rowPad - metaCol
+        val timeLeft = dayLeft - rowPad - timeRun
+        val flapRight = timeLeft - rowPad
 
         for (i in 0 until visible) {
             val row = rows[i]
             val top = y + i * (cellH + spread)
             drawRow(canvas, paint, face, row, top, cellH, cellW, cellGap,
-                    rowPad, flapRight, timeCol)
+                    rowPad, flapRight, timeLeft, dayLeft)
         }
         return bitmap
     }
 
     /** One row: title flaps on the left, the marker and time on the right. */
-    private fun drawRow(
+    /**
+     * A run of flaps carrying one string.
+     *
+     * Shared by the title and the time, because on the board they are the
+     * same object — the web version flaps both, and a widget that flapped
+     * only the title was a different machine wearing the same paint.
+     */
+    private fun drawFlaps(
         canvas: Canvas,
         paint: Paint,
-        face: RectF,
-        row: Row,
+        left: Float,
         top: Float,
-        cellH: Float,
+        cells: Int,
         cellW: Float,
+        cellH: Float,
         cellGap: Float,
-        pad: Float,
-        flapRight: Float,
-        timeCol: Float
+        base: Float,
+        text: String,
+        ink: Int,
+        alignRight: Boolean
     ) {
-        val ink = if (row.flagged) INK_DIM else INK
-
-        // The time is plain text, not flaps — it is a label on the board, and
-        // flapping it would cost cells the title needs more.
-        paint.typeface = mono
-        paint.textSize = cellH * 0.62f
-        paint.color = ink
-        paint.textAlign = Paint.Align.RIGHT
-        val base = top + cellH - (cellH - paint.textSize) / 2 - paint.descent() * 0.6f
-        val timeText = if (row.day.isEmpty()) row.time else "${row.day} ${row.time}"
-        canvas.drawText(timeText, face.right - pad, base, paint)
-
-        // The marker has a column of its own between the flaps and the times,
-        // so it can never be squeezed out by a long name. Truncating it would
-        // make an unreadable rating look clean.
-        if (row.unknown) {
-            paint.color = GLOW
-            canvas.drawText("?", face.right - pad - timeCol - pad, base, paint)
+        val body = when {
+            text.length > cells -> text.take(cells - 1) + "\u2026"
+            alignRight -> text.padStart(cells, ' ')
+            else -> text
         }
-
-        val runWidth = flapRight - (face.left + pad)
-        if (runWidth <= cellW) return
-        val cells = floor((runWidth + cellGap) / (cellW + cellGap)).toInt()
-        if (cells <= 0) return
-
-        val text = row.title.uppercase()
-        val body = if (text.length > cells) text.take(cells - 1) + "…" else text
 
         paint.textAlign = Paint.Align.CENTER
         for (c in 0 until cells) {
-            val x = face.left + pad + c * (cellW + cellGap)
+            val x = left + c * (cellW + cellGap)
             val cell = RectF(x, top, x + cellW, top + cellH)
 
             paint.style = Paint.Style.FILL
             paint.shader = LinearGradient(
                 0f, cell.top, 0f, cell.bottom, FLAP, FLAP_EDGE, Shader.TileMode.CLAMP
             )
-            // Square, near enough. The web board's flaps are hard-cornered
-            // on purpose; a hairline radius just takes the aliasing off.
+            // Square, near enough. The web board's flaps are hard-cornered on
+            // purpose; a hairline radius just takes the aliasing off.
             canvas.drawRoundRect(cell, 1f, 1f, paint)
             paint.shader = null
 
@@ -342,6 +334,57 @@ object SignRenderer {
             }
         }
         paint.textAlign = Paint.Align.LEFT
+    }
+
+    private fun drawRow(
+        canvas: Canvas,
+        paint: Paint,
+        face: RectF,
+        row: Row,
+        top: Float,
+        cellH: Float,
+        cellW: Float,
+        cellGap: Float,
+        pad: Float,
+        flapRight: Float,
+        timeLeft: Float,
+        dayLeft: Float
+    ) {
+        val ink = if (row.flagged) INK_DIM else INK
+        paint.typeface = mono
+        paint.textSize = cellH * 0.62f
+        val base = top + cellH - (cellH - paint.textSize) / 2 - paint.descent() * 0.6f
+
+        // The title.
+        val runWidth = flapRight - (face.left + pad)
+        val cells = floor((runWidth + cellGap) / (cellW + cellGap)).toInt()
+        if (cells > 0) {
+            drawFlaps(canvas, paint, face.left + pad, top, cells, cellW, cellH,
+                      cellGap, base, row.title.uppercase(), ink, false)
+        }
+
+        // The time, flapped too, right-aligned so the digits line up column to
+        // column exactly as they do on the board.
+        drawFlaps(canvas, paint, timeLeft, top, TIME_CELLS, cellW, cellH,
+                  cellGap, base, row.time, ink, true)
+
+        // Day and marker stay plain text: on the board these live in the meta
+        // column beside the flaps, not on them.
+        paint.textSize = cellH * 0.42f
+        paint.textAlign = Paint.Align.LEFT
+        val metaBase = top + cellH - (cellH - paint.textSize) / 2 - paint.descent() * 0.6f
+        var x = dayLeft
+        if (row.unknown) {
+            // Never truncated, never squeezed out: an unreadable rating must
+            // not be able to look like a clean one.
+            paint.color = GLOW
+            canvas.drawText("?", x, metaBase, paint)
+            x += paint.measureText("? ")
+        }
+        if (row.day.isNotEmpty()) {
+            paint.color = if (row.flagged) INK_DIM else INK_SOFT
+            canvas.drawText(row.day, x, metaBase, paint)
+        }
     }
 
     /**

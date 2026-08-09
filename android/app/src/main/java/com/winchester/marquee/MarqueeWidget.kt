@@ -276,7 +276,7 @@ class MarqueeWidget : AppWidgetProvider() {
         if (ANIMATE_LAMPS) {
             for ((phase, id) in LAMP_IDS.withIndex()) {
                 views.setImageViewBitmap(
-                    id, SignRenderer.lamps(wPx, hPx, density, phase)
+                    id, SignRenderer.lamps(wPx, hPx, phase)
                 )
             }
         } else {
@@ -290,7 +290,7 @@ class MarqueeWidget : AppWidgetProvider() {
             views.setImageViewBitmap(
                 R.id.sign,
                 SignRenderer.render(
-                    wPx, hPx, density, "WINCHESTER", "NO SIGNAL", true,
+                    wPx, hPx, "WINCHESTER", "NO SIGNAL", true,
                     emptyList(), (problem ?: "No cached snapshot yet.") +
                         " Tap the top right to retry."
                 )
@@ -307,7 +307,7 @@ class MarqueeWidget : AppWidgetProvider() {
             views.setImageViewBitmap(
                 R.id.sign,
                 SignRenderer.render(
-                    wPx, hPx, density, "WINCHESTER", "BAD DATA", true,
+                    wPx, hPx, "WINCHESTER", "BAD DATA", true,
                     emptyList(), "The snapshot could not be read."
                 )
             )
@@ -326,7 +326,7 @@ class MarqueeWidget : AppWidgetProvider() {
         views.setImageViewBitmap(
             R.id.sign,
             SignRenderer.render(
-                wPx, hPx, density, masthead, stamp, isStale,
+                wPx, hPx, masthead, stamp, isStale,
                 rows.take(MAX_ROWS).map {
                     SignRenderer.Row(it.name, it.time, it.day, it.flagged, it.unknown)
                 },

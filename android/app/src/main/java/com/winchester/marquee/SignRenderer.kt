@@ -111,33 +111,43 @@ object SignRenderer {
     fun render(
         widthPx: Int,
         heightPx: Int,
-        density: Float,
         masthead: String,
         stamp: String,
         stale: Boolean,
         rows: List<Row>,
         message: String?
     ): Bitmap {
-        val w = max(widthPx, (140 * density).toInt())
-        val h = max(heightPx, (90 * density).toInt())
+        // A floor in pixels, not dp: below this there is nothing legible to
+        // draw whatever the screen's density claims.
+        val w = max(widthPx, 240)
+        val h = max(heightPx, 160)
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(WALL)
 
-        val dp = { v: Float -> v * density }
+        // Everything below is sized as a fraction of the sign, never in dp.
+        //
+        // The bitmap is stretched to the widget by the ImageView, so a dp is
+        // not a fixed size once it gets there — it is a fixed size *in the
+        // bitmap*, which then scales by however wrong the launcher's reported
+        // size was. This phone over-reports, so dp-sized cells rendered at
+        // half their intended share of the sign: small letters, and rows
+        // filling half the height with a void beneath. A proportion cannot
+        // have that bug.
+        val u = w / 100f                   // one percent of the sign's width
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
         // --- the sign body -------------------------------------------------
-        val frameInset = dp(2f)
+        val frameInset = u * 0.6f
         val body = RectF(frameInset, frameInset, w - frameInset, h - frameInset)
-        val corner = dp(10f)
+        val corner = u * 3f
 
         paint.style = Paint.Style.FILL
         paint.color = FRAME
         canvas.drawRoundRect(body, corner, corner, paint)
 
         // The lit face, brightest where the lamps sit closest.
-        val bulbLane = dp(9f)
+        val bulbLane = u * 2.8f
         val face = RectF(
             body.left + bulbLane, body.top + bulbLane,
             body.right - bulbLane, body.bottom - bulbLane
@@ -145,29 +155,30 @@ object SignRenderer {
         paint.shader = LinearGradient(
             0f, face.top, 0f, face.bottom, FACE_HOT, FACE, Shader.TileMode.CLAMP
         )
-        canvas.drawRoundRect(face, dp(4f), dp(4f), paint)
+        canvas.drawRoundRect(face, u * 1.2f, u * 1.2f, paint)
         paint.shader = null
 
-        drawBulbs(canvas, paint, body, bulbLane, dp(2.1f), dp(11f))
+        drawBulbs(canvas, paint, body, bulbLane, u * 0.66f, u * 3.4f)
 
         // --- header band ---------------------------------------------------
         // A fixed 11dp masthead was a caption on a sign, not a sign's name.
         // The band scales with the object so it reads as the theatre's board
         // at any size the widget is dragged to.
-        val pad = dp(8f)
-        val headerH = (face.width() * 0.11f).coerceIn(dp(20f), dp(46f))
+        val pad = u * 2.5f
+        val headerH = (face.width() * 0.11f)
+            .coerceIn(face.height() * 0.07f, face.height() * 0.2f)
         val header = RectF(face.left, face.top, face.right, face.top + headerH)
 
         paint.color = HEADER
         canvas.drawRect(header, paint)
         paint.color = RULE
-        paint.strokeWidth = max(density, 1f)
+        paint.strokeWidth = max(u * 0.15f, 1f)
         canvas.drawLine(header.left + pad, header.bottom,
                         header.right - pad, header.bottom, paint)
 
         paint.typeface = mono
         paint.textAlign = Paint.Align.LEFT
-        paint.textSize = headerH * 0.44f
+        paint.textSize = headerH * 0.5f
         paint.color = INK
         val nameBase = header.centerY() - (paint.descent() + paint.ascent()) / 2f
         canvas.drawText(masthead, face.left + pad, nameBase, paint)
@@ -175,7 +186,7 @@ object SignRenderer {
 
         // "NOW PLAYING" only when there is room for it beside the name, so a
         // narrow widget keeps the theatre rather than the caption.
-        paint.textSize = headerH * 0.2f
+        paint.textSize = headerH * 0.22f
         val kicker = "NOW PLAYING"
         paint.color = INK_SOFT
         if (nameWidth + paint.measureText(kicker) + pad * 3 < face.width() * 0.72f) {
@@ -187,17 +198,17 @@ object SignRenderer {
         canvas.drawText(stamp, face.right - pad, nameBase, paint)
         paint.textAlign = Paint.Align.LEFT
 
-        var y = header.bottom + dp(5f)
+        val y = header.bottom + u * 1.6f
 
         // --- a message instead of rows -------------------------------------
         if (message != null) {
-            paint.textSize = dp(9.5f)
+            paint.textSize = headerH * 0.28f
             paint.color = INK_SOFT
             paint.typeface = Typeface.MONOSPACE
-            var ty = y + dp(10f)
+            var ty = y + headerH * 0.4f
             for (line in wrap(message, paint, face.width() - pad * 2)) {
                 canvas.drawText(line, face.left + pad, ty, paint)
-                ty += dp(13f)
+                ty += headerH * 0.38f
             }
             return bitmap
         }
@@ -206,13 +217,11 @@ object SignRenderer {
         if (rows.isEmpty()) return bitmap
 
         val available = face.height() - (y - face.top) - pad
-        val rowGap = dp(2.5f)
-        val minH = dp(11f)                 // below this the letters stop reading
-        val maxH = dp(26f)                 // above it a tall widget just gapes
+        val rowGap = u * 0.8f
+        val minH = face.height() * 0.045f  // below this the letters stop reading
+        val maxH = face.height() * 0.16f   // above it a tall widget just gapes
 
-        // Fit the rows to the height, rather than a fixed row height to the
-        // rows: a fixed 17dp left two thirds of a short widget empty while
-        // still overflowing a shorter one.
+        // Fit the rows to the height, not a fixed row height to the rows.
         var visible = rows.size
         var cellH = (available - rowGap * (visible - 1)) / visible
         while (visible > 1 && cellH < minH) {
@@ -222,18 +231,17 @@ object SignRenderer {
         cellH = min(cellH, maxH)
 
         // Height is only half the constraint. Everything on a row scales with
-        // cellH — the flaps, the time, the marker — so a tall cell on a narrow
-        // sign spends the whole width on eight big letters and truncates the
-        // film. Cap the cell at whatever still leaves a title worth reading.
+        // cellH — flaps, time, marker — so a tall cell on a narrow sign spends
+        // the whole width on a few big letters and truncates the film. Cap the
+        // cell at whatever still leaves a title worth reading.
         //
-        // The coefficient is the row's width in units of cellH: TIME_CELLS
-        // flaps and MIN_CHARS flaps at 0.52 each, plus the meta column, which
-        // is the marker and a four-character day at 0.42 of the cell.
-        val cellGap = max(dp(0.6f), 1f)
+        // The coefficient is the row's width in units of cellH: TIME_CELLS and
+        // MIN_CHARS flaps at 0.52 each, plus the meta column, which is the
+        // marker and a four-character day at 0.42 of the cell.
+        val cellGap = max(u * 0.18f, 1f)
         val perMetaChar = 0.6f * 0.42f     // monospace advance, as a fraction
         val widthUnits = (TIME_CELLS + MIN_CHARS) * 0.52f + 6f * perMetaChar
-        val widthCap =
-            (face.width() - 3 * dp(6f) - MIN_CHARS * cellGap) / widthUnits
+        val widthCap = (face.width() - 3 * pad - MIN_CHARS * cellGap) / widthUnits
         cellH = min(cellH, max(widthCap, minH))
 
         val cellW = cellH * 0.52f          // a flap is taller than it is wide
@@ -252,7 +260,7 @@ object SignRenderer {
         // runs then end on a straight edge and the markers line up, which is
         // what a board looks like; per-row widths left a ragged edge that read
         // as a mistake rather than a design.
-        val rowPad = dp(6f)
+        val rowPad = pad
         paint.typeface = mono
 
         // The meta column: the marker, and the day when it is not today.
@@ -469,22 +477,24 @@ object SignRenderer {
      * the sign would exceed it — but a frame of this is a few dozen dots, so
      * scaling it up costs nothing anyone can see.
      */
-    fun lamps(widthPx: Int, heightPx: Int, density: Float, phase: Int): Bitmap {
-        val scale = LAMP_SCALE
-        val w = max((widthPx * scale).toInt(), 1)
-        val h = max((heightPx * scale).toInt(), 1)
+    fun lamps(widthPx: Int, heightPx: Int, phase: Int): Bitmap {
+        val w = max((widthPx * LAMP_SCALE).toInt(), 1)
+        val h = max((heightPx * LAMP_SCALE).toInt(), 1)
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        val d = density * scale
-        val dp = { v: Float -> v * d }
-        val frameInset = dp(2f)
+        // The same proportions render() uses. They have to be proportions and
+        // not dp, or the lit dots would land beside the unlit ring rather than
+        // on it — this frame is drawn at LAMP_SCALE and stretched back over a
+        // sign drawn at full size.
+        val u = w / 100f
+        val frameInset = u * 0.6f
         val body = RectF(frameInset, frameInset, w - frameInset, h - frameInset)
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.style = Paint.Style.FILL
-        val positions = bulbPositions(body, dp(9f), dp(11f))
-        val radius = dp(2.1f)
+        val positions = bulbPositions(body, u * 2.8f, u * 3.4f)
+        val radius = u * 0.66f
 
         for ((n, p) in positions.withIndex()) {
             if (n % CHANNELS != phase) continue

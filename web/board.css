@@ -318,7 +318,9 @@ body::before {
   height: 200%;
   line-height: var(--cell-h);
   text-align: center;
-  font-size: calc(var(--cell-h) * 0.62);
+  /* A square box is shorter than the old 1.5 ratio, so the glyph takes more
+     of it to hold its size. */
+  font-size: calc(var(--cell-h) * 0.70);
   font-weight: 700;
   color: var(--flap-ink);
   text-shadow:

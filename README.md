@@ -10,13 +10,16 @@ Not a ticketing app. Not a multi-theater aggregator. No accounts, no login.
 | Step | State |
 |---|---|
 | 1 — Endpoint discovery | **Done.** JSON API found and mapped. |
-| 2 — TMDB enrichment | **Wired, never executed.** Runtime, genres, synopsis. |
+| 2 — TMDB enrichment | **Running.** Runtime, genres, synopsis, cached posters. |
 | 3 — Content severity parser | **Built, tested and fed.** Input is a hand-kept book — see below. |
 | 3b — Series/event treatments | **Built and tested.** Reconciling against the real feed. |
 | 4 — Display | **Built and verified in Chromium.** Poster grid, split-flap board, widgets. |
 | 5 — Ops | **Built.** 6-hour cron, atomic cache, stale degradation, gap logging. |
 
-The pipeline runs end to end against real Winchester data. 148 tests.
+The pipeline runs end to end against real Winchester data. 165 tests.
+
+Latest cycle on the box: 32 titles fetched, 32 posters cached, 0 TMDB
+failures, 2 dimmed. 26 titles are waiting on a rating reason and show `?`.
 
 ### The feed
 

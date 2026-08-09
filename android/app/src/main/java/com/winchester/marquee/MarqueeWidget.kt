@@ -65,6 +65,11 @@ class MarqueeWidget : AppWidgetProvider() {
             R.id.time0, R.id.time1, R.id.time2,
             R.id.time3, R.id.time4, R.id.time5
         )
+        /** The unknown-rating marker, in its own view per row. */
+        private val MARK_IDS = intArrayOf(
+            R.id.mark0, R.id.mark1, R.id.mark2,
+            R.id.mark3, R.id.mark4, R.id.mark5
+        )
     }
 
     override fun onUpdate(
@@ -173,6 +178,7 @@ class MarqueeWidget : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.stamp, retry)
 
         for (id in ROW_IDS) views.setViewVisibility(id, View.GONE)
+        for (id in MARK_IDS) views.setViewVisibility(id, View.GONE)
 
         if (body == null) {
             views.setTextViewText(R.id.stamp, "NO SIGNAL")
@@ -219,11 +225,17 @@ class MarqueeWidget : AppWidgetProvider() {
 
         for ((slot, row) in rows.take(ROW_IDS.size).withIndex()) {
             views.setViewVisibility(ROW_IDS[slot], View.VISIBLE)
-            // A trailing ? means the rating reason could not be read: unknown,
-            // not clean. Never silently treated as fine.
-            val mark = if (row.unknown) "  ?" else ""
-            views.setTextViewText(TITLE_IDS[slot], row.name.uppercase(Locale.US) + mark)
+            views.setTextViewText(TITLE_IDS[slot], row.name.uppercase(Locale.US))
             views.setTextViewText(TIME_IDS[slot], "${row.day} ${row.time}")
+
+            // ? means the rating reason could not be read: unknown, not clean.
+            // It lives in its own view because appended to the title it shared
+            // the title's ellipsize — a long name truncated the marker away
+            // and the row then read as though the rating were known, which is
+            // the one thing this state exists to prevent.
+            views.setViewVisibility(
+                MARK_IDS[slot], if (row.unknown) View.VISIBLE else View.GONE)
+            views.setTextViewText(MARK_IDS[slot], "?")
 
             // Dimming fades the letters, it does not darken the sign.
             val colour = if (row.flagged) inkDim else ink

@@ -135,6 +135,17 @@ class TestTitleCleanup(unittest.TestCase):
     def test_leaves_a_plain_title_alone(self):
         self.assertEqual(strip_decoration("Ironwood"), "Ironwood")
 
+    def test_a_trailing_screening_date_is_dropped(self):
+        # Alamo bills recurring events with the date in the title. It is the
+        # booking, not the film, and a widget row cannot spare the characters.
+        self.assertEqual(
+            strip_decoration("Mystery Machine (8/10/2026)"), "Mystery Machine")
+        self.assertEqual(strip_decoration("Film (12-25-26)"), "Film")
+
+    def test_a_parenthetical_that_is_not_a_date_survives(self):
+        self.assertEqual(
+            strip_decoration("Not A Date (Part 2)"), "Not A Date (Part 2)")
+
     def test_does_not_eat_a_colon_that_is_part_of_the_title(self):
         # Regression: a generic "word colon" rule turned
         # "Spider-Man: Brand New Day" into "Brand New Day" and searched CARA

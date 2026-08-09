@@ -150,6 +150,11 @@ def strip_decoration(title: str) -> str:
     cleaned = re.sub(r"\s+[-–]\s+(35mm|70mm|dcp|imax).*$", "", cleaned, flags=re.I)
     # A trailing year helps a human disambiguate and only confuses the search.
     cleaned = re.sub(r"\s*\((?:19|20)\d{2}\)\s*$", "", cleaned).strip()
+    # A trailing screening date, as Alamo bills recurring events: "Mystery
+    # Machine (8/10/2026)". It is the booking, not the film, and it costs
+    # thirteen characters on a widget row that only has about thirty.
+    cleaned = re.sub(
+        r"\s*\(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\)\s*$", "", cleaned).strip()
     return cleaned or title
 
 

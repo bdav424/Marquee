@@ -226,7 +226,9 @@ body::before {
   width: var(--cell-w);
   height: var(--cell-h);
   perspective: 200px;
-  border-radius: 3px;
+  /* No rounding anywhere on a flap. Real Solari cards are guillotined square
+     and the corner radius was reading as soft plastic. */
+  border-radius: 0;
   background: var(--flap-seam);
   /* Lit tile on a lit panel: separation comes from a cast shadow and a dark
      edge, not from the background being dark. */
@@ -252,8 +254,8 @@ body::before {
   z-index: 1;
 }
 
-.half.top { top: 0; border-radius: 3px 3px 0 0; }
-.half.bottom { top: 50%; border-radius: 0 0 3px 3px; }
+.half.top { top: 0; }
+.half.bottom { top: 50%; }
 
 .half.top {
   background: linear-gradient(180deg, var(--flap-lit), #EBD9AC);
@@ -293,14 +295,12 @@ body::before {
 /* Front carries the outgoing glyph's top half. Back carries the incoming
    glyph's bottom half, pre-rotated so the parent's -180deg lands it upright. */
 .side.front {
-  border-radius: 3px 3px 0 0;
   background: linear-gradient(180deg, var(--flap-lit), #EBD9AC);
   border-bottom: 1px solid var(--hinge);
 }
 
 .side.back {
   transform: rotateX(180deg);
-  border-radius: 3px 3px 0 0;
   background: linear-gradient(0deg, var(--flap-lit-edge), #C9B183);
 }
 

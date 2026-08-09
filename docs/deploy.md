@@ -97,10 +97,17 @@ the file to your box. Add a Scriptable widget to the home screen and point it
 at the script.
 
 **Widget (Android)** — `android/` holds an AppWidgetProvider that reads the
-same JSON. It has never been compiled: open the directory in Android Studio,
-set `BASE_URL` in `MarqueeWidget.kt`, and build. Until then the home-screen
-shortcut to the page is the Android equivalent, and it loses nothing except
-the glance.
+same JSON. You do not need Android Studio: every push to `android/` builds a
+debug APK in CI, so open the repository's **Actions** tab on the phone, take
+the newest **Build widget APK** run, and download the `marquee-widget-debug`
+artifact. Unzip, tap the APK, then long-press the home screen → Widgets.
+
+It defaults to `http://127.0.0.1:8080`, the phone serving itself. Builds are
+signed with the checked-in `debug.keystore` so later APKs install straight
+over earlier ones.
+
+Tapping the widget opens the board; tapping its timestamp forces a refresh
+rather than waiting out the 30-minute update period.
 
 The widget is the glance; tapping it opens the companion page. iOS widgets have
 no in-widget interaction beyond a tap target, so the "why is this dimmed" panel

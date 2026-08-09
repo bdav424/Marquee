@@ -5,27 +5,35 @@ only. This reads the same `data/marquee.json` and renders the same verdict the
 fetcher already computed, so no surface can disagree with another about
 whether a title is dimmed.
 
-## This has never been compiled
+## Get the APK without a computer
 
-It was written without an Android SDK available. The XML is well-formed and
-every `R.id`, `R.color`, `@string` and `@drawable` reference has been checked
-against the resources that define it — but nothing here has been through a
-compiler or run on a device. Expect to fix something on the first build.
+Every push to `android/` builds a debug APK in CI. Open the repository's
+**Actions** tab on the phone, take the newest **Build widget APK** run, and
+download the `marquee-widget-debug` artifact. Unzip it and tap the APK;
+Android will ask once for permission to install from that source.
 
-## Build it
+Builds are signed with the checked-in `debug.keystore`, so a new APK installs
+straight over the old one and the widget keeps its place on the home screen.
+
+Then long-press the home screen → Widgets → Winchester Marquee.
+
+## Build it yourself
 
 1. Open the `android/` directory in Android Studio and let Gradle sync. It
    will fetch the Android Gradle Plugin and the Kotlin plugin.
-2. Set your box's address. In
+2. Set where `web/` is being served from. In
    `app/src/main/java/com/winchester/marquee/MarqueeWidget.kt`:
 
    ```kotlin
-   const val BASE_URL = "http://winchester.local:8080"
+   const val BASE_URL = "http://127.0.0.1:8080"
    ```
 
-   If you use a bare IP rather than a hostname, add it to
-   `app/src/main/res/xml/network_security_config.xml` as well — the box serves
-   plain HTTP, and cleartext is permitted per-domain rather than app-wide.
+   The default is the phone itself, which is the usual setup: Termux runs the
+   fetcher and a loopback server on the same device. Point it at a hostname
+   instead if the fetcher lives on a Pi. Nothing else needs changing —
+   cleartext is permitted in the base config, because scoping it to a
+   `<domain>` list silently blocked loopback and produced a widget that said
+   "cannot reach the box" while the browser loaded the same URL fine.
 3. Build and install to your phone over USB, or `./gradlew installDebug`.
 4. Long-press the home screen, choose Widgets, and drag "Winchester Marquee"
    out. It resizes.

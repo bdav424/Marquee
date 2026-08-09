@@ -28,10 +28,9 @@ import kotlin.concurrent.thread
  *
  * Replaces the Scriptable script in widget/, which is iOS-only.
  *
- * NOT COMPILED. This was written without an Android SDK available, so it has
- * never been built or run. Treat it as reviewed, not working: open the
- * android/ directory in Android Studio, let it sync, and expect to fix
- * something on the first build.
+ * Built by .github/workflows/android.yml on every push to android/, which is
+ * also how to get an installable APK without an Android Studio anywhere near
+ * it. See android/README.md.
  */
 class MarqueeWidget : AppWidgetProvider() {
 

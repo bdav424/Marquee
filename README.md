@@ -345,7 +345,7 @@ marquee/images.py          poster caching, never hotlinked
 
 web/                       companion page (phone-first, no framework)
 widget/marquee-widget.js   Scriptable home-screen widget (iOS)
-android/                   home-screen widget (Android, uncompiled)
+android/                   home-screen widget (Android, built in CI)
 
 scripts/refresh.py         cron entry point — fetch, build, degrade gracefully
 scripts/build_sample.py    display JSON from invented fixtures, not real data

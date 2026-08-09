@@ -109,7 +109,18 @@ cannot live inside the widget itself — it lives one tap away.
 Both surfaces render the verdict the fetcher already computed. Neither decides
 anything on its own, so they cannot disagree.
 
-## 6. Tuning the content signal
+## 6. Your thresholds
+
+Most tuning does not need a text editor. The gear icon on the grid opens a
+settings sheet: per-category thresholds, the Horror backstop, whether to flag
+unreadable ratings, and whether flagged titles dim or hide. It is stored on
+the device and applies to both the grid and the board, so two people using the
+same box can disagree.
+
+Hiding always shows a count and a way back. `config/marquee.toml` remains the
+default for a fresh device.
+
+## 7. Tuning the vocabulary
 
 `config/marquee.toml` holds the keyword sets, the intensity ladder, and your
 thresholds. `config/series.toml` holds the series treatments. Neither requires

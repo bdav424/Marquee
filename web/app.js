@@ -314,6 +314,40 @@ function renderFreshness(data) {
   node.classList.toggle('stale', !!data.stale);
 }
 
+/* The viewer's thresholds. The snapshot ships a verdict computed from
+   config/marquee.toml; this re-derives it from the same severity scores so
+   one person's judgement is not baked into everyone's display. */
+const prefs = Verdict.load();
+
+/* Re-score and redraw. Called on load and after every settings change. */
+function paint() {
+  const grid = document.getElementById('grid');
+  const { shown, hidden } = Verdict.apply(snapshot.titles, prefs);
+
+  grid.replaceChildren(...shown.map(makeCard));
+  document.getElementById('empty').hidden = shown.length > 0 || hidden.length > 0;
+
+  // Hiding announces itself, always, with a way back in one tap. A filter you
+  // cannot see is indistinguishable from a film that is not playing.
+  const notice = document.getElementById('withheld');
+  notice.hidden = hidden.length === 0;
+  if (hidden.length) {
+    notice.replaceChildren(
+      document.createTextNode(
+        `${hidden.length} title${hidden.length === 1 ? '' : 's'} hidden by your settings. `));
+    const show = document.createElement('button');
+    show.className = 'withheld-show';
+    show.type = 'button';
+    show.textContent = 'Show them';
+    show.addEventListener('click', () => {
+      prefs.mode = 'dim';
+      Verdict.save(prefs);
+      paint();
+    });
+    notice.appendChild(show);
+  }
+}
+
 async function boot() {
   const grid = document.getElementById('grid');
 
@@ -337,9 +371,17 @@ async function boot() {
   }
 
   renderFreshness(snapshot);
-  grid.replaceChildren(...snapshot.titles.map(makeCard));
+  paint();
   grid.removeAttribute('aria-busy');
-  document.getElementById('empty').hidden = snapshot.titles.length > 0;
+
+  Settings.mountSettings({
+    openButton: document.getElementById('settings-toggle'),
+    sheet: document.getElementById('settings'),
+    body: document.getElementById('settings-body'),
+    closeButton: document.getElementById('settings-close'),
+    prefs,
+    apply: paint,
+  });
 
   // The board links here as index.html#slug — a row there is a glance, and
   // the explanation lives in this panel. Open it straight away.
@@ -350,7 +392,9 @@ function openFromHash() {
   const slug = decodeURIComponent(location.hash.slice(1));
   if (!slug || !snapshot) return;
   const title = snapshot.titles.find(t => t.slug === slug);
-  if (title) openSheet(title);
+  // Scored the same way the card was, or the panel would explain a verdict
+  // the grid is not showing — and the board links straight here.
+  if (title) openSheet({ ...title, ...Verdict.evaluate(title, prefs) });
 }
 
 window.addEventListener('hashchange', openFromHash);

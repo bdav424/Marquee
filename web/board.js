@@ -550,10 +550,16 @@ async function load() {
   return res.json();
 }
 
+const prefs = Verdict.load();
+
 async function tick(force) {
   let data;
   try {
     data = await load();
+    // Same preferences the grid uses, applied to the same severity scores, so
+    // a title dimmed on one surface is dimmed on the other.
+    const { shown } = Verdict.apply(data.titles, prefs);
+    data = { ...data, titles: shown };
   } catch (err) {
     document.getElementById('stamp').textContent = 'NO SIGNAL';
     document.getElementById('stamp').classList.add('stale');

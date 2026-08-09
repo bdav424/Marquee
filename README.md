@@ -21,6 +21,9 @@ The pipeline runs end to end against real Winchester data. 174 tests.
 Latest cycle on the box: 32 titles fetched, 32 posters cached, 0 TMDB
 failures, 2 dimmed. 26 titles are waiting on a rating reason and show `?`.
 
+Thresholds are per-viewer and set in the browser, so the config file is only
+the default. See [Your thresholds](#your-thresholds-not-the-configs).
+
 ### The feed
 
 `drafthouse.com` is an Angular SPA — the served HTML is a 4.5 KB shell with no
@@ -109,6 +112,31 @@ A title with no entry stays `unknown` and shows a question mark. That is the
 honest state, and it is why `unknown` exists as something distinct from clean:
 a display that defaulted missing reasons to "no content issues" would show a
 wall of confidently unflagged titles and quietly mean nothing.
+
+### Your thresholds, not the config's
+
+`config/marquee.toml` sets what the fetcher computes, but the verdict it bakes
+into the snapshot is one person's judgement, and the person holding the phone
+may not agree. The gear icon opens a settings sheet that re-derives `flagged`
+in the browser from the same per-category severity scores the payload already
+carries — per-category thresholds from Never to Severe, the Horror backstop,
+whether unreadable ratings should count, and dim-versus-hide.
+
+Both surfaces read the same preferences, so a title dimmed on the grid is
+dimmed on the board. Nothing is sent anywhere; it lives in localStorage on
+that device.
+
+Two rules survive the customisation, because they are what make the signal
+worth trusting:
+
+- **Unknown never satisfies a threshold.** A title whose reason could not be
+  read has `null` severities, and null is not a low score. Flagging unknown is
+  an explicit opt-in, off by default.
+- **Hiding announces itself.** `hide` mode does remove titles from the list —
+  the original brief said never hide anything, and this is a deliberate
+  departure — but the count stays on screen with a one-tap "Show them". A
+  filter you cannot see is indistinguishable from a film that is not playing,
+  and that is the failure mode the whole content signal exists to avoid.
 
 ## What is built: the severity parser
 

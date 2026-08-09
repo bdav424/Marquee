@@ -16,8 +16,12 @@
 <header class="bar">
   <div class="bar-main">
     <h1 id="theatre">Winchester</h1>
-    <button id="legend-toggle" class="legend-btn" aria-expanded="false"
-            aria-controls="legend" title="What the dimming means">?</button>
+    <div class="bar-actions">
+      <button id="settings-toggle" class="legend-btn" aria-expanded="false"
+              aria-controls="settings" title="Your thresholds">&#9881;</button>
+      <button id="legend-toggle" class="legend-btn" aria-expanded="false"
+              aria-controls="legend" title="What the dimming means">?</button>
+    </div>
   </div>
   <div class="market" id="market"></div>
   <p class="freshness" id="freshness" aria-live="polite">Loading…</p>
@@ -30,6 +34,17 @@
   <p><span class="swatch swatch-unknown"></span> Marked <b>?</b> means the rating
      reason could not be read. Unknown — not known to be clean.</p>
 </section>
+
+<section id="settings" class="settings" hidden>
+  <div class="set-head">
+    <h2>Your thresholds</h2>
+    <button id="settings-close" class="legend-btn" title="Close">&times;</button>
+  </div>
+  <div id="settings-body"></div>
+</section>
+
+<!-- Hiding always announces itself. Never a silent filter. -->
+<p id="withheld" class="withheld" hidden></p>
 
 <main id="grid" class="grid" aria-busy="true"></main>
 
@@ -45,6 +60,8 @@
   <div id="sheet-body" class="sheet-body"></div>
 </aside>
 
+<script src="verdict.js"></script>
+<script src="settings.js"></script>
 <script src="market.js"></script>
 <script src="app.js"></script>
 </body>

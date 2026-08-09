@@ -31,6 +31,10 @@ class Treatment:
     priority: int
     # Normalised substrings that resolve to this treatment, longest first.
     match: tuple[str, ...] = ()
+    # Require the whole tag to equal a pattern rather than merely contain it.
+    # For a generic phrase like "film club", containment swallows unrelated
+    # strands — "Cursed Film Club" is not the Film Club.
+    exact: bool = False
     # The verbatim feed string this resolved from; None for the default.
     source: str | None = None
     recognised: bool = True
@@ -85,6 +89,7 @@ def load_series_config(path: Path | str = DEFAULT_CONFIG_PATH) -> SeriesConfig:
                 foreground=entry["foreground"],
                 one_night=bool(entry.get("one_night", False)),
                 priority=int(entry.get("priority", 0)),
+                exact=bool(entry.get("exact", False)),
                 # Longest first so "movie party" wins over bare "party".
                 match=tuple(
                     sorted(
@@ -135,7 +140,12 @@ def resolve(tags: list[str] | str | None, config: SeriesConfig) -> list[Treatmen
 
         match = None
         for treatment in config.treatments:
-            if any(_contains_phrase(normalised, pattern) for pattern in treatment.match):
+            hit = (
+                normalised in treatment.match
+                if treatment.exact
+                else any(_contains_phrase(normalised, p) for p in treatment.match)
+            )
+            if hit:
                 match = treatment
                 break
 

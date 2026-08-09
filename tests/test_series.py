@@ -75,6 +75,41 @@ class TestUnrecognisedStrands(unittest.TestCase):
         self.assertEqual(unrecognised("Terror Tuesday", CONFIG), [])
 
 
+class TestConfirmedStrands(unittest.TestCase):
+    """Reconciled against a real Winchester cycle."""
+
+    def test_advance_sales_is_dropped_not_badged(self):
+        # It appeared on 25 of 31 live titles and means tickets are on sale
+        # early, not that a film belongs to a strand.
+        self.assertIsNone(primary("Advance Sales", CONFIG))
+
+    def test_collection_slugs_resolve(self):
+        self.assertEqual(primary("Psycho Cinema", CONFIG).key, "psycho_cinema")
+        self.assertEqual(primary("Film Club", CONFIG).key, "film_club")
+
+    def test_admission_policy_badges_under_a_short_label(self):
+        # The chip already shows the certification, so the badge should not
+        # restate it.
+        treatment = primary("Rated PG with Adult Focus", CONFIG)
+        self.assertEqual(treatment.label, "ADULT FOCUS")
+
+    def test_exact_matching_does_not_swallow_a_similar_strand(self):
+        # "film club" is generic; containment would claim anything ending in
+        # it. An unrelated club must stay unrecognised and get reported.
+        treatment = primary("Cursed Film Club", CONFIG)
+        self.assertFalse(treatment.recognised)
+        self.assertEqual(unrecognised("Cursed Film Club", CONFIG), ["Cursed Film Club"])
+
+    def test_exact_matching_still_accepts_the_raw_slug(self):
+        self.assertEqual(primary("film-club", CONFIG).key, "film_club")
+
+    def test_substring_strands_are_unaffected_by_the_exact_flag(self):
+        self.assertEqual(
+            primary("Alamo Presents: Terror Tuesday — 35mm", CONFIG).key,
+            "terror_tuesday",
+        )
+
+
 class TestNoTag(unittest.TestCase):
     def test_absent_tag_resolves_to_nothing(self):
         for empty in (None, "", "   ", []):

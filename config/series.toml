@@ -17,7 +17,14 @@
 # be pure noise and would bury the one-night programming the badge exists to
 # surface. Matched like any other tag, then dropped.
 [ignore]
-tags = ["new releases", "first run", "first-run"]
+# "Advance Sales" appeared on 25 of 31 live titles — it means tickets are on
+# sale early, not that a film belongs to a strand. Badging it would bury the
+# one-night programming the badge exists to surface, which is the same reason
+# "New Releases" is here.
+tags = [
+  "new releases", "first run", "first-run",
+  "advance sales", "advance ticket sales", "on sale now",
+]
 
 [defaults]
 # Any series tag the feed carries that matches nothing below still gets a
@@ -123,3 +130,43 @@ background = "#455A64"
 foreground = "#ECEFF1"
 one_night = true
 priority = 55
+
+
+# --- Confirmed on the live Winchester feed ------------------------------------
+# Everything above this line was seeded from the brief and public programming
+# names. These four were reported by the unrecognised-series log on a real
+# cycle, so they are the first entries here that are known to exist.
+
+[[series]]
+key = "psycho_cinema"
+match = ["psycho cinema", "psycho-cinema"]
+label = "PSYCHO CINEMA"
+background = "#6A1B4D"
+foreground = "#FFE8F4"
+one_night = true
+priority = 88
+
+[[series]]
+key = "film_club"
+# Exact: "film club" is a generic phrase and containment would claim any
+# strand ending in it. Confirmed entries come from Alamo's own slugs, so the
+# whole tag is known and needs no fuzzy matching.
+exact = true
+match = ["film club", "film-club"]
+label = "FILM CLUB"
+background = "#1F5F5B"
+foreground = "#E4FFFB"
+one_night = true
+priority = 82
+
+# Alamo's own admission policy rather than a programming strand, but it is the
+# thing a parent actually needs to see, so it badges. Labelled short: the full
+# "Rated PG with Adult Focus" restates a certification the chip already shows.
+[[series]]
+key = "adult_focus"
+match = ["adult focus"]
+label = "ADULT FOCUS"
+background = "#8A4B1F"
+foreground = "#FFF0E2"
+one_night = false
+priority = 78

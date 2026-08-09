@@ -350,6 +350,18 @@ def _showtime(session: dict) -> datetime:
     )
 
 
+def _humanise(value: str) -> str:
+    """Turn a slug into a label. Values already in prose are left alone.
+
+    primaryCollectionSlug arrives as "psycho-cinema" while
+    presentationAttributes carry a proper name, so the two need levelling
+    before either reaches the display.
+    """
+    if " " in value or "-" not in value:
+        return value
+    return " ".join(word.capitalize() for word in value.split("-"))
+
+
 def _series_tags(presentation: dict, attributes: dict) -> list[str]:
     """Human-readable series/event tags for a presentation.
 
@@ -362,12 +374,12 @@ def _series_tags(presentation: dict, attributes: dict) -> list[str]:
     for key in ("superTitle", "event", "eventType", "primaryCollectionSlug"):
         value = presentation.get(key)
         if isinstance(value, str) and value.strip():
-            tags.append(value.strip())
+            tags.append(_humanise(value.strip()))
 
     for slug in presentation.get("presentationAttributeSlugs") or []:
         attribute = attributes.get(slug)
         if not attribute:
-            tags.append(slug)
+            tags.append(_humanise(slug))
             continue
         # Respect Alamo's own judgement about what is worth showing a user.
         if attribute.get("isUserVisible") is False:

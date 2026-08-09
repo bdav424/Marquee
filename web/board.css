@@ -343,6 +343,14 @@ body::before {
   font-size: calc(var(--cell-w) * 1.42);
   font-weight: 700;
   color: var(--flap-ink);
+  /* Optical centring. A line box reserves descender space below the baseline
+     that all-caps text never uses, so the glyph sat high in the flap —
+     measured at 3px of air above and 5.6px below in a 21px cell. Shifting
+     down half that difference evens it out. In em, because the cause is font
+     metrics, so it tracks the type rather than the flap.
+     Safe on the turning card's two faces as well: their rotations compose to
+     identity at rest, so the shift survives as written. */
+  transform: translateY(0.076em);
   text-shadow:
     0 1px 0 rgba(255,255,255,0.5),
     0 0 6px rgba(255,214,140,0.28);
